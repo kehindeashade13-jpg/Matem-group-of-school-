@@ -38,7 +38,14 @@ export default function ContactPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'submit_inquiry',
-          payload: formData
+          payload: {
+            name: formData.name || '',
+            phone: formData.phone || '',
+            email: formData.email || '',
+            arm: formData.arm || 'private-school',
+            purpose: formData.purpose || 'general',
+            message: formData.message || ''
+          }
         })
       });
 
@@ -109,9 +116,9 @@ export default function ContactPage() {
                   <div>
                     <h4 className="font-serif font-bold text-sm text-navy-800">Campus Location</h4>
                     <p className="text-gray-500 text-xs mt-1 leading-relaxed">
-                      12 Matem Crescent, <br />
-                      Off Aladelola Street, <br />
-                      Ikoyi, Lagos, Nigeria
+                      34, Alabi Abimbola Street, <br />
+                      Osi Ota, Off Ten Bus Stop, <br />
+                      Ogun State
                     </p>
                   </div>
                 </div>
@@ -133,8 +140,8 @@ export default function ContactPage() {
                   <div>
                     <h4 className="font-serif font-bold text-sm text-navy-800">Phone Support</h4>
                     <div className="text-gray-500 text-xs mt-1 flex flex-col space-y-0.5">
-                      <a href="tel:+2348035551234" className="hover:text-gold-600">+234 803 555 1234</a>
-                      <a href="tel:+2348125555678" className="hover:text-gold-600">+234 812 555 5678</a>
+                      <a href="tel:+2348089664009" className="hover:text-gold-600">08089664009</a>
+                      <a href="tel:+2347016905766" className="hover:text-gold-600">07016905766</a>
                     </div>
                   </div>
                 </div>
@@ -144,8 +151,7 @@ export default function ContactPage() {
                   <div>
                     <h4 className="font-serif font-bold text-sm text-navy-800">Email Addresses</h4>
                     <div className="text-gray-500 text-xs mt-1 flex flex-col space-y-0.5">
-                      <a href="mailto:info@matemschools.com" className="hover:text-gold-600">info@matemschools.com</a>
-                      <a href="mailto:admissions@matemschools.com" className="hover:text-gold-600">admissions@matemschools.com</a>
+                      <a href="mailto:matemschools126@gmail.com" className="hover:text-gold-600">matemschools126@gmail.com</a>
                     </div>
                   </div>
                 </div>
@@ -163,7 +169,7 @@ export default function ContactPage() {
                   </div>
                 </div>
                 <a
-                  href="https://wa.me/2348035551234?text=Hello%20Matem%20Schools%2C%20I%20have%20a%20general%20question%20regarding%20the%20upcoming%20academic%20term."
+                  href="https://wa.me/2348089664009?text=Hello%20Matem%20Schools%2C%20I%20have%20a%20general%20question%20regarding%20the%20upcoming%20academic%20term."
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-green-600 hover:bg-green-700 text-white font-bold px-5 py-2.5 rounded-lg text-xs shadow-sm text-center transition-colors shrink-0"
@@ -188,7 +194,7 @@ export default function ContactPage() {
                   <div className="absolute left-0 right-0 top-[75%] h-1.5 bg-white animate-pulse" />
                   <div className="absolute inset-0 flex flex-col justify-end p-4 text-center z-10 bg-gradient-to-t from-black/45 to-transparent">
                     <span className="text-[10px] font-mono font-bold text-white uppercase tracking-wider">
-                      Matem Crescent, Ikoyi, Lagos, Nigeria
+                      34, Alabi Abimbola Street, Osi Ota, Off Ten Bus Stop, Ogun State
                     </span>
                   </div>
                 </div>
@@ -259,7 +265,7 @@ export default function ContactPage() {
                           name="phone"
                           value={formData.phone}
                           onChange={handleChange}
-                          placeholder="+234 803 555 1234"
+                          placeholder="08089664009"
                           className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-gold-500 text-gray-800"
                           required
                         />

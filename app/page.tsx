@@ -110,7 +110,7 @@ export default function HomePage() {
       <section id="highlights-bar" className="relative -mt-10 z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-2xl shadow-premium p-6 sm:p-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center border border-gray-100">
           <div className="border-r last:border-0 border-gray-100 pr-2">
-            <div className="text-3xl sm:text-4xl font-serif font-bold text-navy-800">14+</div>
+            <div className="text-3xl sm:text-4xl font-serif font-bold text-navy-800">18+</div>
             <div className="text-xs text-gray-500 mt-1 font-sans font-medium uppercase tracking-wider">Years of Prestige</div>
           </div>
           <div className="border-r last:border-0 border-gray-100 pr-2">
@@ -134,15 +134,15 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             <div className="lg:col-span-5 relative h-[450px] rounded-2xl overflow-hidden shadow-premium border-4 border-white">
               <Image
-                src="https://picsum.photos/seed/proprietress/600/800"
-                alt="Proprietress Chief (Mrs.) M. Ademola"
+                src="https://picsum.photos/seed/proprietor/600/800"
+                alt="Proprietor Mr Ekunwe Martin Nosakhare"
                 fill
                 className="object-cover"
                 referrerPolicy="no-referrer"
               />
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-navy-950 via-navy-900/60 to-transparent p-6 text-white">
-                <h4 className="font-serif font-bold text-lg text-white">Chief (Mrs.) M. Ademola</h4>
-                <p className="text-xs text-gold-400 font-sans uppercase tracking-widest">Founder & Proprietress</p>
+                <h4 className="font-serif font-bold text-lg text-white">Mr Ekunwe Martin Nosakhare</h4>
+                <p className="text-xs text-gold-400 font-sans uppercase tracking-widest">Founder & Proprietor</p>
               </div>
             </div>
 

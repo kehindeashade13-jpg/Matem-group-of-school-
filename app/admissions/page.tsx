@@ -43,7 +43,7 @@ const FAQS = [
   },
   {
     q: "What is your uniform standard?",
-    a: "Our standard uniform is white shirts, custom gold/navy ties, black shoes, white socks, grey trousers (boys) or pleated navy skirts (girls), and a navy blue school blazer with our crest. On Fridays, pupils wear their assigned house sports t-shirts (Ademola, Blue, Gold, Green) with white trainers."
+    a: "Our standard uniform is white shirts, custom gold/navy ties, black shoes, white socks, grey trousers (boys) or pleated navy skirts (girls), and a navy blue school blazer with our crest. On Fridays, pupils wear their assigned house sports t-shirts (Ekunwe, Blue, Gold, Green) with white trainers."
   },
   {
     q: "Are hot school lunch services provided?",
@@ -80,7 +80,14 @@ export default function AdmissionsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'submit_inquiry',
-          payload: formData
+          payload: {
+            name: formData.name || '',
+            phone: formData.phone || '',
+            email: formData.email || '',
+            arm: formData.arm || 'private-school',
+            purpose: formData.purpose || 'admission',
+            message: formData.message || ''
+          }
         })
       });
 
@@ -246,7 +253,7 @@ export default function AdmissionsPage() {
                           name="phone"
                           value={formData.phone}
                           onChange={handleChange}
-                          placeholder="+234 803 555 1234"
+                          placeholder="08089664009"
                           className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-gold-500 text-gray-800"
                           required
                         />
@@ -386,12 +393,12 @@ export default function AdmissionsPage() {
                 <div className="bg-navy-800/80 p-4 border-l-4 border-gold-500 rounded-r-xl space-y-1">
                   <div className="text-[10px] text-gray-400 font-bold uppercase font-mono">Administration Desk</div>
                   <p className="text-xs text-gold-400">
-                    Kindly complete the Inquiry Form on this page or email admissions@matemschools.com to receive our detailed termly fee prospectus.
+                    Kindly complete the Inquiry Form on this page or email matemschools126@gmail.com to receive our detailed termly fee prospectus.
                   </p>
                 </div>
                 <div className="pt-2 flex flex-col gap-2 font-mono text-[11px] text-gray-300">
-                  <div className="flex items-center"><Phone className="h-4 w-4 text-gold-500 mr-2" /> +234 803 555 1234</div>
-                  <div className="flex items-center"><Mail className="h-4 w-4 text-gold-500 mr-2" /> admissions@matemschools.com</div>
+                  <div className="flex items-center"><Phone className="h-4 w-4 text-gold-500 mr-2" /> 08089664009 / 07016905766</div>
+                  <div className="flex items-center"><Mail className="h-4 w-4 text-gold-500 mr-2" /> matemschools126@gmail.com</div>
                 </div>
               </div>
             </div>

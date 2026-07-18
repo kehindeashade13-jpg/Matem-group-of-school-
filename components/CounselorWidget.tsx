@@ -54,7 +54,7 @@ export default function CounselorWidget() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: messages,
+          messages: messages.map(m => ({ role: m.role, content: m.content })),
           userMessage: userMsg
         })
       });
@@ -65,7 +65,7 @@ export default function CounselorWidget() {
       } else {
         setMessages(prev => [...prev, {
           role: 'model',
-          content: data.error || "Pardon me, I encountered a brief technical lag. Please try again or feel free to call us at +234 803 555 1234."
+          content: data.error || "Pardon me, I encountered a brief technical lag. Please try again or feel free to call us at 08089664009."
         }]);
       }
     } catch (err) {

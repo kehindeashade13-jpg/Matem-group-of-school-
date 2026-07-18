@@ -94,23 +94,22 @@ export default function Footer() {
               <li className="flex items-start">
                 <MapPin className="h-5 w-5 text-gold-500 mr-3 shrink-0 mt-0.5" />
                 <span>
-                  12 Matem Crescent, <br />
-                  Off Aladelola Street, <br />
-                  Ikoyi, Lagos, Nigeria
+                  34, Alabi Abimbola Street, <br />
+                  Osi Ota, Off Ten Bus Stop, <br />
+                  Ogun State
                 </span>
               </li>
               <li className="flex items-center">
                 <Phone className="h-5 w-5 text-gold-500 mr-3 shrink-0" />
                 <div className="flex flex-col">
-                  <a href="tel:+2348035551234" className="hover:text-gold-400 transition-colors">+234 803 555 1234</a>
-                  <a href="tel:+2348125555678" className="hover:text-gold-400 transition-colors">+234 812 555 5678</a>
+                  <a href="tel:+2348089664009" className="hover:text-gold-400 transition-colors">08089664009</a>
+                  <a href="tel:+2347016905766" className="hover:text-gold-400 transition-colors">07016905766</a>
                 </div>
               </li>
               <li className="flex items-center">
                 <Mail className="h-5 w-5 text-gold-500 mr-3 shrink-0" />
                 <div className="flex flex-col">
-                  <a href="mailto:info@matemschools.com" className="hover:text-gold-400 transition-colors">info@matemschools.com</a>
-                  <a href="mailto:admissions@matemschools.com" className="hover:text-gold-400 transition-colors">admissions@matemschools.com</a>
+                  <a href="mailto:matemschools126@gmail.com" className="hover:text-gold-400 transition-colors">matemschools126@gmail.com</a>
                 </div>
               </li>
             </ul>

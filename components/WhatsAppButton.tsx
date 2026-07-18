@@ -15,7 +15,7 @@ export default function WhatsAppButton() {
     return () => clearTimeout(timer);
   }, []);
 
-  const whatsappUrl = "https://wa.me/2348035551234?text=Hello%20Matem%20Schools%2C%20I%20would%20like%20to%20make%20an%20inquiry%20about%20admissions%20for%20my%20child.%20Thank%20you.";
+  const whatsappUrl = "https://wa.me/2348089664009?text=Hello%20Matem%20Schools%2C%20I%20would%20like%20to%20make%20an%20inquiry%20about%20admissions%20for%20my%20child.%20Thank%20you.";
 
   return (
     <div id="whatsapp-floating-widget" className="fixed bottom-6 left-6 z-40 flex flex-col items-start">

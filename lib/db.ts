@@ -91,7 +91,7 @@ Equipped with high-performance desktop computers, interactive projectors, and mo
 - Digital design and 3D modeling workshops
 - Digital literacy programs for our nursery and primary pupils
 
-Proprietor Chief (Mrs.) M. Ademola noted: "This lab is more than just computers. It is an incubator for critical thinking, creativity, and technological leadership."
+Proprietor Mr Ekunwe Martin Nosakhare noted: "This lab is more than just computers. It is an incubator for critical thinking, creativity, and technological leadership."
 
 Practical training classes will commence in the first week of the upcoming term. Stay tuned for photos from the official commissioning ceremony!`,
     date: '2026-07-17',

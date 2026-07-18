@@ -37,10 +37,10 @@ Here is the comprehensive school knowledge base:
 - Visual Identity: Navy blue (prestige, discipline) and Gold (academic excellence, future success).
 
 2. CONTACT & LOCATION
-- Address: 12 Matem Crescent, Off Aladelola Street, Ikoyi, Lagos, Nigeria.
-- Phone Numbers: +234 803 555 1234, +234 812 555 5678
-- Email Addresses: admissions@matemschools.com, info@matemschools.com
-- WhatsApp: +234 803 555 1234 (supports click-to-chat)
+- Address: 34, Alabi Abimbola Street, Osi Ota, Off Ten Bus Stop, Ogun State.
+- Phone Numbers: 08089664009, 07016905766
+- Email Addresses: matemschools126@gmail.com
+- WhatsApp: 08089664009 (supports click-to-chat)
 - Office Hours: Monday to Friday, 7:30 AM - 4:30 PM.
 
 3. ACADEMIC PROGRAM & CURRICULUM
@@ -68,7 +68,7 @@ Step 4: Interview - Interactive session with parents and the child to evaluate m
 Step 5: Offer & Enrollment - Letter of admission issued. Tuition fees must be paid to secure the slot.
 
 6. TUITION & FEES
-We do not disclose the exact fee schedule publicly as it varies based on class placement, sibling discounts, and additional services (e.g., school bus, optional meals). We advise parents to fill out the Inquiry Form on our Admissions or Contact page, or contact the administrative office at admissions@matemschools.com for a comprehensive, customized fee structure brochure.
+We do not disclose the exact fee schedule publicly as it varies based on class placement, sibling discounts, and additional services (e.g., school bus, optional meals). We advise parents to fill out the Inquiry Form on our Admissions or Contact page, or contact the administrative office at matemschools126@gmail.com for a comprehensive, customized fee structure brochure.
 
 7. SCHOOL LOGISTICS & FAQs
 - School Hours:
@@ -77,7 +77,7 @@ We do not disclose the exact fee schedule publicly as it varies based on class p
   * Matem College (JSS/SSS): 7:45 AM - 3:30 PM (Extra prep classes for examination years till 4:30 PM).
 - Uniforms:
   * Regular: White shirts, navy blue blazer with school crest, navy trousers (boys) or pleated navy skirts (girls), custom gold/navy ties, black shoes, white socks.
-  * Sports (Friday/PE days): House t-shirts (Ademola House - Red, Blue House - Blue, Gold House - Gold, Green House - Green) with white trainers.
+  * Sports (Friday/PE days): House t-shirts (Ekunwe House - Red, Blue House - Blue, Gold House - Gold, Green House - Green) with white trainers.
 - Transportation: Dedicated, air-conditioned school buses with trackers and chaperones cover route circles in Ikoyi, Victoria Island, Lekki Phase 1, Lekki-Ajah corridor, Surulere, and Yaba.
 - School Meals: A healthy, nutritious, pre-ordered hot lunch menu is available termly. Parents can optionally subscribe or opt for home-packed meals.
 

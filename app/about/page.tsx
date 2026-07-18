@@ -10,10 +10,10 @@ import { ShieldCheck, Heart, Sparkles, BookOpen, UserCheck, Eye, Target } from '
 
 const TEAM = [
   {
-    name: "Chief (Mrs.) M. Ademola",
-    role: "Founder & Proprietress",
-    bio: "With over 30 years in academic administration, Chief Mrs. Ademola founded Matem Schools with the singular vision of blending classic morals with modern technological competence.",
-    img: "https://picsum.photos/seed/proprietress/400/400"
+    name: "Mr Ekunwe Martin Nosakhare",
+    role: "Founder & Proprietor",
+    bio: "With over 30 years in academic administration, Mr Ekunwe Martin Nosakhare founded Matem Schools with the singular vision of blending classic morals with modern technological competence.",
+    img: "https://picsum.photos/seed/proprietor/400/400"
   },
   {
     name: "Mr. Samuel Okon",
@@ -114,14 +114,14 @@ export default function AboutPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <span className="text-xs font-bold text-gold-500 uppercase tracking-widest block font-mono">
-                Since 2012
+                Since August 2008
               </span>
               <h2 className="text-3xl sm:text-4xl font-serif font-bold text-navy-800">
                 Our Founding Story & Educational Journey
               </h2>
               <div className="w-16 h-1 bg-gold-500 rounded" />
               <p className="text-gray-600 text-sm leading-relaxed">
-                Matem Schools commenced its educational services in September 2012 in Ikoyi, Lagos. Founded by Chief (Mrs.) M. Ademola, the institution was built to fill a vital void: the need for an educational center that delivers top-tier scientific and analytical learning while uncompromisingly upholding classic moral discipline.
+                Matem Schools commenced its educational services in August 2008. Founded by Mr Ekunwe Martin Nosakhare, the institution was built to fill a vital void: the need for an educational center that delivers top-tier scientific and analytical learning while uncompromisingly upholding classic moral discipline.
               </p>
               <p className="text-gray-600 text-sm leading-relaxed">
                 Starting as a premium nursery and primary nursery school, our high standards led parents to demand a continuation into the secondary level. Thus, Matem College was established. Today, both arms run in tandem as a unified, highly efficient school system, preparing kids to confidently lead in science, engineering, business, and humanities.
@@ -237,7 +237,7 @@ export default function AboutPage() {
                 </div>
                 <div className="p-6 pt-0">
                   <div className="border-t border-gray-200/50 pt-3 text-[10px] text-gray-400 font-sans tracking-wide">
-                    Contact: admin@matemschools.com
+                    Contact: matemschools126@gmail.com
                   </div>
                 </div>
               </div>
