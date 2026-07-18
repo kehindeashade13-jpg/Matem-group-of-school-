@@ -1,0 +1,6 @@
+{
+  "name": "Matem Private School & Matem College",
+  "description": "A unified, professional educational website for Matem Private School (primary/nursery) and Matem College (secondary) in Ikoyi, Lagos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
