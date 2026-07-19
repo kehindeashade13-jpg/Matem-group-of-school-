@@ -140,7 +140,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             <div className="lg:col-span-5 relative h-[450px] rounded-2xl overflow-hidden shadow-premium border-4 border-white">
               <Image
-                src="https://picsum.photos/seed/proprietor/600/800"
+                src="/images/founder_portrait.jpg"
                 alt="Proprietor Mr Ekunwe Martin Nosakhare"
                 fill
                 className="object-cover"

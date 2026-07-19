@@ -13,7 +13,7 @@ const TEAM = [
     name: "Mr Ekunwe Martin Nosakhare",
     role: "Founder & Proprietor",
     bio: "With over 30 years in academic administration, Mr Ekunwe Martin Nosakhare founded Matem Schools with the singular vision of blending classic morals with modern technological competence.",
-    img: "https://picsum.photos/seed/proprietor/400/400"
+    img: "/images/founder_portrait.jpg"
   },
   {
     name: "Mr. Samuel Okon",
