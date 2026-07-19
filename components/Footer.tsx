@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Mail, Phone, MapPin, GraduationCap, ArrowUp, Facebook, Twitter, Instagram, Send } from 'lucide-react';
+import { Mail, Phone, MapPin, GraduationCap, ArrowUp, Facebook, Twitter, Instagram } from 'lucide-react';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -14,7 +14,7 @@ export default function Footer() {
   return (
     <footer id="main-footer" className="bg-navy-950 text-gray-300 pt-16 pb-8 border-t border-gold-500/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
           {/* Logo & School Motto */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center space-x-3">
@@ -113,34 +113,6 @@ export default function Footer() {
                 </div>
               </li>
             </ul>
-          </div>
-
-          {/* Newsletter / Map Mini Panel */}
-          <div>
-            <h3 className="font-serif text-lg font-bold text-white mb-6 border-b border-gold-500/30 pb-2 inline-block">
-              Newsletter
-            </h3>
-            <p className="text-sm text-gray-400 mb-4">
-              Subscribe to get term updates, newsletters, and announcements directly to your inbox.
-            </p>
-            <form onSubmit={(e) => e.preventDefault()} className="flex mb-4">
-              <input
-                type="email"
-                placeholder="Enter parent email"
-                className="bg-navy-900 border border-navy-800 text-sm rounded-l-md px-4 py-2.5 w-full focus:outline-none focus:border-gold-500 text-white"
-                required
-              />
-              <button
-                type="submit"
-                className="bg-gold-500 hover:bg-gold-400 text-navy-950 px-4 rounded-r-md transition-colors flex items-center justify-center"
-                aria-label="Subscribe"
-              >
-                <Send className="h-4.5 w-4.5" />
-              </button>
-            </form>
-            <div className="text-[11px] text-gray-500">
-              *Your privacy is secured. We never share emails.
-            </div>
           </div>
         </div>
 

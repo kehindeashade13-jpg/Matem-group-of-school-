@@ -92,12 +92,6 @@ export default function HomePage() {
               >
                 Apply Now
               </Link>
-              <Link
-                href="/contact"
-                className="w-full sm:w-auto bg-transparent hover:bg-white/10 text-white border-2 border-white/80 font-bold px-8 py-3.5 rounded-full transition-all text-center"
-              >
-                Book a Tour
-              </Link>
             </div>
           </motion.div>
         </div>
@@ -273,93 +267,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Upcoming Events Preview */}
-      <section id="events-preview" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
-            <div className="space-y-3">
-              <span className="text-xs font-bold text-gold-500 uppercase tracking-widest block font-mono">
-                Get Involved
-              </span>
-              <h2 className="text-3xl font-serif font-bold text-navy-800">Upcoming Campus Events</h2>
-              <div className="w-12 h-1 bg-gold-500 rounded" />
-            </div>
-            <Link
-              href="/gallery"
-              className="mt-4 md:mt-0 inline-flex items-center text-sm font-bold text-navy-800 hover:text-gold-500 transition-colors"
-            >
-              View Full Calendar <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {upcomingEvents.length > 0 ? (
-              upcomingEvents.map((evt) => (
-                <div key={evt.id} className="bg-white rounded-xl shadow-premium border border-gray-100 p-6 space-y-4 hover:border-gold-500 transition-colors flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2.5">
-                      <span className="bg-gold-100 text-gold-800 text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider font-mono">
-                        {evt.category}
-                      </span>
-                    </div>
-                    <h3 className="font-serif font-bold text-lg text-navy-800 line-clamp-2">{evt.title}</h3>
-                    <p className="text-gray-500 text-xs line-clamp-3 leading-relaxed">{evt.description}</p>
-                  </div>
-                  <div className="pt-4 border-t border-gray-100 text-xs text-gray-500 space-y-1.5 font-sans font-medium">
-                    <div className="flex items-center"><Calendar className="h-4 w-4 text-gold-500 mr-2" /> {evt.date}</div>
-                    <div className="flex items-center"><Clock className="h-4 w-4 text-gold-500 mr-2" /> {evt.time}</div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              // Seed Fallback
-              <>
-                <div className="bg-white rounded-xl shadow-premium border border-gray-100 p-6 space-y-4 hover:border-gold-500 transition-colors flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="flex items-center">
-                      <span className="bg-gold-100 text-gold-800 text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider font-mono">sports</span>
-                    </div>
-                    <h3 className="font-serif font-bold text-lg text-navy-800 line-clamp-2">2026 Matem Sports Day & Inter-House Athletics</h3>
-                    <p className="text-gray-500 text-xs line-clamp-3 leading-relaxed">An exciting day of track and field events, house marches, and healthy competition at our main sports field.</p>
-                  </div>
-                  <div className="pt-4 border-t border-gray-100 text-xs text-gray-500 space-y-1.5">
-                    <div className="flex items-center"><Calendar className="h-4 w-4 text-gold-500 mr-2" /> 2026-08-22</div>
-                    <div className="flex items-center"><Clock className="h-4 w-4 text-gold-500 mr-2" /> 09:00 AM - 03:00 PM</div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-premium border border-gray-100 p-6 space-y-4 hover:border-gold-500 transition-colors flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="flex items-center">
-                      <span className="bg-gold-100 text-gold-800 text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider font-mono">cultural</span>
-                    </div>
-                    <h3 className="font-serif font-bold text-lg text-navy-800 line-clamp-2">Matem Schools Annual Cultural Day Celebration</h3>
-                    <p className="text-gray-500 text-xs line-clamp-3 leading-relaxed">Celebrating the diverse cultural heritage of Nigeria with traditional wear, culinary exhibitions, dance, and music.</p>
-                  </div>
-                  <div className="pt-4 border-t border-gray-100 text-xs text-gray-500 space-y-1.5">
-                    <div className="flex items-center"><Calendar className="h-4 w-4 text-gold-500 mr-2" /> 2026-09-18</div>
-                    <div className="flex items-center"><Clock className="h-4 w-4 text-gold-500 mr-2" /> 10:00 AM - 04:00 PM</div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-premium border border-gray-100 p-6 space-y-4 hover:border-gold-500 transition-colors flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="flex items-center">
-                      <span className="bg-gold-100 text-gold-800 text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider font-mono">academic</span>
-                    </div>
-                    <h3 className="font-serif font-bold text-lg text-navy-800 line-clamp-2">Parent-Teacher Association (PTA) General Meeting</h3>
-                    <p className="text-gray-500 text-xs line-clamp-3 leading-relaxed">A vital collaborative session to discuss curriculum updates, welfare, security, and school expansion projects.</p>
-                  </div>
-                  <div className="pt-4 border-t border-gray-100 text-xs text-gray-500 space-y-1.5">
-                    <div className="flex items-center"><Calendar className="h-4 w-4 text-gold-500 mr-2" /> 2026-10-03</div>
-                    <div className="flex items-center"><Clock className="h-4 w-4 text-gold-500 mr-2" /> 12:00 PM - 02:30 PM</div>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </section>
 
       {/* Parents/Alumni Testimonials */}
       <section id="testimonials-section" className="py-20 bg-navy-800 text-white relative overflow-hidden">

@@ -243,7 +243,21 @@ export default function AdminPage() {
         .order('created_at', { ascending: false });
       
       if (inqError) console.error("Error fetching inquiries:", inqError);
-      else if (inqData) setInquiries(inqData);
+      else if (inqData) {
+        const sanitizedInquiries: Inquiry[] = inqData.map((item: any) => ({
+          id: String(item.id || ''),
+          name: String(item.name || ''),
+          email: String(item.email || ''),
+          phone: String(item.phone || ''),
+          arm: item.arm || 'private-school',
+          purpose: item.purpose || 'admission',
+          message: String(item.message || ''),
+          status: item.status || 'pending',
+          date: String(item.date || ''),
+          created_at: item.created_at ? String(item.created_at) : undefined
+        }));
+        setInquiries(sanitizedInquiries);
+      }
 
       // 2. Fetch posts
       const { data: postData, error: postError } = await supabase
@@ -252,7 +266,20 @@ export default function AdminPage() {
         .order('created_at', { ascending: false });
 
       if (postError) console.error("Error fetching posts:", postError);
-      else if (postData) setPosts(postData);
+      else if (postData) {
+        const sanitizedPosts: Post[] = postData.map((item: any) => ({
+          id: String(item.id || ''),
+          title: String(item.title || ''),
+          category: item.category || 'School News',
+          excerpt: String(item.excerpt || ''),
+          content: String(item.content || ''),
+          date: String(item.date || ''),
+          image: String(item.image || ''),
+          author: String(item.author || ''),
+          created_at: item.created_at ? String(item.created_at) : undefined
+        }));
+        setPosts(sanitizedPosts);
+      }
 
       // 3. Fetch events
       const { data: evData, error: evError } = await supabase
@@ -261,7 +288,19 @@ export default function AdminPage() {
         .order('created_at', { ascending: false });
 
       if (evError) console.error("Error fetching events:", evError);
-      else if (evData) setEvents(evData);
+      else if (evData) {
+        const sanitizedEvents: EventItem[] = evData.map((item: any) => ({
+          id: String(item.id || ''),
+          title: String(item.title || ''),
+          description: String(item.description || ''),
+          date: String(item.date || ''),
+          time: String(item.time || ''),
+          location: String(item.location || ''),
+          category: item.category || 'academic',
+          created_at: item.created_at ? String(item.created_at) : undefined
+        }));
+        setEvents(sanitizedEvents);
+      }
 
     } catch (err) {
       console.error("General connection error:", err);
