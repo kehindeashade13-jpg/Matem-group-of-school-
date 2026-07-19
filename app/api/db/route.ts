@@ -58,10 +58,12 @@ export async function GET() {
         category: item.category || 'academic',
       }));
 
+      const db = getDatabase();
       return NextResponse.json({
         inquiries: sanitizedInquiries,
         posts: sanitizedPosts,
-        events: sanitizedEvents
+        events: sanitizedEvents,
+        carousel: db.carousel
       });
     } catch (err) {
       console.error("Supabase API error in GET /api/db:", err);
@@ -118,7 +120,7 @@ export async function POST(req: NextRequest) {
           // Return ONLY the serializable record, never the cyclic response metadata
           return NextResponse.json({ 
             success: true, 
-            inquiry: data ? {
+            inquiry: data && data.length > 0 ? {
               id: String(data[0].id || ''),
               name: String(data[0].name || ''),
               email: String(data[0].email || ''),
@@ -161,7 +163,7 @@ export async function POST(req: NextRequest) {
           }
           return NextResponse.json({ 
             success: true, 
-            inquiry: data ? {
+            inquiry: data && data.length > 0 ? {
               id: String(data[0].id || ''),
               name: String(data[0].name || ''),
               email: String(data[0].email || ''),
@@ -238,7 +240,7 @@ export async function POST(req: NextRequest) {
           }
           return NextResponse.json({ 
             success: true, 
-            post: data ? {
+            post: data && data.length > 0 ? {
               id: String(data[0].id || ''),
               title: String(data[0].title || ''),
               category: data[0].category || 'School News',
@@ -313,7 +315,7 @@ export async function POST(req: NextRequest) {
           }
           return NextResponse.json({ 
             success: true, 
-            event: data ? {
+            event: data && data.length > 0 ? {
               id: String(data[0].id || ''),
               title: String(data[0].title || ''),
               description: String(data[0].description || ''),
@@ -359,6 +361,21 @@ export async function POST(req: NextRequest) {
           saveDatabase(db);
           return NextResponse.json({ success: true });
         }
+      }
+
+      case 'update_carousel': {
+        const { images, intervalSeconds } = payload;
+        if (!images || !Array.isArray(images)) {
+          return NextResponse.json({ error: 'Missing or invalid images array.' }, { status: 400 });
+        }
+
+        const db = getDatabase();
+        db.carousel = {
+          images,
+          intervalSeconds: Number(intervalSeconds) || 5
+        };
+        saveDatabase(db);
+        return NextResponse.json({ success: true, carousel: db.carousel });
       }
 
       default: {

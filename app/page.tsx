@@ -22,6 +22,8 @@ const HERO_IMAGES = [
 export default function HomePage() {
   const [dbData, setDbData] = useState<{ posts: BlogPost[]; events: EventItem[] } | null>(null);
   const [heroIndex, setHeroIndex] = useState(0);
+  const [carouselImages, setCarouselImages] = useState<string[]>(HERO_IMAGES);
+  const [carouselInterval, setCarouselInterval] = useState(5000);
 
   useEffect(() => {
     // Fetch latest news and events
@@ -31,19 +33,29 @@ export default function HomePage() {
         if (response.ok) {
           const data = await response.json();
           setDbData(data);
+          if (data.carousel) {
+            if (data.carousel.images && data.carousel.images.length > 0) {
+              setCarouselImages(data.carousel.images);
+            }
+            if (data.carousel.intervalSeconds) {
+              setCarouselInterval(data.carousel.intervalSeconds * 1000);
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading homepage data:', error);
       }
     };
     fetchDb();
-
-    // Auto rotate hero background
-    const interval = setInterval(() => {
-      setHeroIndex(prev => (prev + 1) % HERO_IMAGES.length);
-    }, 6000);
-    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (carouselImages.length <= 1) return;
+    const interval = setInterval(() => {
+      setHeroIndex(prev => (prev + 1) % carouselImages.length);
+    }, carouselInterval);
+    return () => clearInterval(interval);
+  }, [carouselImages, carouselInterval]);
 
   const latestPosts = dbData?.posts?.slice(0, 3) || [];
   const upcomingEvents = dbData?.events?.slice(0, 3) || [];
@@ -56,7 +68,7 @@ export default function HomePage() {
       <section id="hero-section" className="relative h-[85vh] flex items-center justify-center overflow-hidden bg-navy-950">
         <div className="absolute inset-0">
           <Image
-            src={HERO_IMAGES[heroIndex]}
+            src={carouselImages[heroIndex] || HERO_IMAGES[0]}
             alt="School Banner"
             fill
             className="object-cover opacity-35 transition-all duration-1000 ease-in-out transform scale-105"

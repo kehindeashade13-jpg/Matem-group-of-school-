@@ -34,10 +34,16 @@ export interface EventItem {
   category: 'academic' | 'sports' | 'cultural' | 'other';
 }
 
+export interface CarouselSettings {
+  images: string[];
+  intervalSeconds: number;
+}
+
 export interface SchoolDatabase {
   inquiries: Inquiry[];
   posts: BlogPost[];
   events: EventItem[];
+  carousel?: CarouselSettings;
 }
 
 const DB_DIR = path.join(process.cwd(), 'data');
@@ -156,6 +162,15 @@ const INITIAL_INQUIRIES: Inquiry[] = [
 ];
 
 export function getDatabase(): SchoolDatabase {
+  const defaultCarousel: CarouselSettings = {
+    images: [
+      'https://picsum.photos/seed/learn/1920/1080',
+      'https://picsum.photos/seed/playground/1920/1080',
+      'https://picsum.photos/seed/chemistry/1920/1080'
+    ],
+    intervalSeconds: 5
+  };
+
   try {
     if (!fs.existsSync(DB_DIR)) {
       fs.mkdirSync(DB_DIR, { recursive: true });
@@ -166,19 +181,27 @@ export function getDatabase(): SchoolDatabase {
         inquiries: INITIAL_INQUIRIES,
         posts: INITIAL_POSTS,
         events: INITIAL_EVENTS,
+        carousel: defaultCarousel,
       };
       fs.writeFileSync(DB_FILE, JSON.stringify(initialDb, null, 2), 'utf-8');
       return initialDb;
     }
 
     const dataStr = fs.readFileSync(DB_FILE, 'utf-8');
-    return JSON.parse(dataStr) as SchoolDatabase;
+    const db = JSON.parse(dataStr) as SchoolDatabase;
+    if (!db.carousel) {
+      db.carousel = defaultCarousel;
+      // Save it back to write the migration
+      fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');
+    }
+    return db;
   } catch (error) {
     console.error('Error reading school database:', error);
     return {
       inquiries: INITIAL_INQUIRIES,
       posts: INITIAL_POSTS,
       events: INITIAL_EVENTS,
+      carousel: defaultCarousel,
     };
   }
 }

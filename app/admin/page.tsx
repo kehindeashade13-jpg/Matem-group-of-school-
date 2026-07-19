@@ -7,7 +7,7 @@ import {
   Lock, LayoutDashboard, Newspaper, Calendar, 
   MessageSquare, Plus, Trash2, Edit2, Eye, CheckCircle, 
   X, RefreshCw, Loader2, Sparkles, UserCheck, AlertCircle,
-  Search, Filter, ExternalLink, Database, AlertTriangle, FileText, MapPin, Clock, Info
+  Search, Filter, ExternalLink, Database, AlertTriangle, FileText, MapPin, Clock, Info, Images
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '@/lib/supabase';
@@ -124,11 +124,18 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authError, setAuthError] = useState("");
 
-  const [activeTab, setActiveTab] = useState<'inquiries' | 'posts' | 'events'>('inquiries');
+  const [activeTab, setActiveTab] = useState<'inquiries' | 'posts' | 'events' | 'carousel'>('inquiries');
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Carousel settings states
+  const [carouselImages, setCarouselImages] = useState<string[]>([]);
+  const [carouselInterval, setCarouselInterval] = useState<number>(5);
+  const [newCarouselUrl, setNewCarouselUrl] = useState("");
+  const [isUploadingCarousel, setIsUploadingCarousel] = useState(false);
+  const [carouselSaving, setCarouselSaving] = useState(false);
 
   // Connection info
   const [isSupabaseConfigured, setIsSupabaseConfigured] = useState(false);
@@ -201,6 +208,21 @@ export default function AdminPage() {
   // Sync data from database or load mock fallbacks
   const fetchAllData = async () => {
     setLoading(true);
+
+    // Fetch carousel settings from API in all modes
+    try {
+      const carouselRes = await fetch('/api/db');
+      if (carouselRes.ok) {
+        const carouselData = await carouselRes.json();
+        if (carouselData.carousel) {
+          setCarouselImages(carouselData.carousel.images || []);
+          setCarouselInterval(carouselData.carousel.intervalSeconds || 5);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching carousel from API:", err);
+    }
+
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const isMock = !url || url.includes("placeholder-project");
 
@@ -326,6 +348,68 @@ export default function AdminPage() {
     } else {
       setAuthError("Incorrect staff passcode. Use 'admin123' to unlock.");
     }
+  };
+
+  // ==========================================
+  // CAROUSEL SETTINGS ACTIONS
+  // ==========================================
+  const saveCarouselSettings = async (updatedImages: string[], updatedInterval: number) => {
+    setCarouselSaving(true);
+    try {
+      const response = await fetch('/api/db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_carousel',
+          payload: {
+            images: updatedImages,
+            intervalSeconds: updatedInterval
+          }
+        })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.carousel) {
+          setCarouselImages(data.carousel.images || []);
+          setCarouselInterval(data.carousel.intervalSeconds || 5);
+        }
+      } else {
+        console.error("Failed to save carousel settings");
+      }
+    } catch (error) {
+      console.error("Error saving carousel settings:", error);
+    } finally {
+      setCarouselSaving(false);
+    }
+  };
+
+  const handleCarouselFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingCarousel(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      if (base64String) {
+        const newImages = [...carouselImages, base64String];
+        setCarouselImages(newImages);
+        saveCarouselSettings(newImages, carouselInterval);
+      }
+      setIsUploadingCarousel(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveCarouselImage = (indexToRemove: number) => {
+    const newImages = carouselImages.filter((_, idx) => idx !== indexToRemove);
+    setCarouselImages(newImages);
+    saveCarouselSettings(newImages, carouselInterval);
+  };
+
+  const handleIntervalChange = (newInterval: number) => {
+    setCarouselInterval(newInterval);
+    saveCarouselSettings(carouselImages, newInterval);
   };
 
   // ==========================================
@@ -850,6 +934,20 @@ export default function AdminPage() {
                       {events.length}
                     </span>
                   </button>
+
+                  <button
+                    onClick={() => { setActiveTab('carousel'); setSearchQuery(''); }}
+                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-lg text-xs font-bold transition-all ${
+                      activeTab === 'carousel'
+                        ? 'bg-navy-800 text-white shadow-sm'
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <Images className="h-4 w-4 mr-2.5" />
+                      <span>Homepage Carousel</span>
+                    </div>
+                  </button>
                 </div>
 
                 <div className="bg-white p-5 rounded-xl shadow-premium border border-gray-100 space-y-3">
@@ -870,84 +968,86 @@ export default function AdminPage() {
               <div className="lg:col-span-9 space-y-6">
                 
                 {/* Global Search and Tab Filter Tools */}
-                <div className="bg-white p-4 rounded-xl shadow-premium border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <input
-                      type="text"
-                      placeholder={`Search ${activeTab}...`}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-4 py-2.5 text-xs text-gray-700 focus:outline-none focus:border-gold-500"
-                    />
-                    {searchQuery && (
-                      <button onClick={() => setSearchQuery("")} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                        <X className="h-3.5 w-3.5" />
+                {activeTab !== 'carousel' && (
+                  <div className="bg-white p-4 rounded-xl shadow-premium border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <input
+                        type="text"
+                        placeholder={`Search ${activeTab}...`}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-4 py-2.5 text-xs text-gray-700 focus:outline-none focus:border-gold-500"
+                      />
+                      {searchQuery && (
+                        <button onClick={() => setSearchQuery("")} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center space-x-3 shrink-0">
+                      {/* Secondary Filters for Specific Tabs */}
+                      {activeTab === 'inquiries' && (
+                        <div className="flex items-center space-x-2 text-xs">
+                          <Filter className="h-3.5 w-3.5 text-gray-400" />
+                          <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-2 text-gray-600 focus:outline-none focus:border-gold-500"
+                          >
+                            <option value="all">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="contacted">Contacted</option>
+                            <option value="resolved">Resolved</option>
+                          </select>
+                        </div>
+                      )}
+
+                      {(activeTab === 'posts' || activeTab === 'events') && (
+                        <div className="flex items-center space-x-2 text-xs">
+                          <Filter className="h-3.5 w-3.5 text-gray-400" />
+                          <select
+                            value={categoryFilter}
+                            onChange={(e) => setCategoryFilter(e.target.value)}
+                            className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-2 text-gray-600 focus:outline-none focus:border-gold-500"
+                          >
+                            <option value="all">All Categories</option>
+                            {activeTab === 'posts' ? (
+                              <>
+                                <option value="School News">School News</option>
+                                <option value="Academic Achievements">Academic Achievements</option>
+                                <option value="Announcements">Announcements</option>
+                                <option value="Notices">Notices</option>
+                              </>
+                            ) : (
+                              <>
+                                <option value="academic">Academic</option>
+                                <option value="sports">Sports</option>
+                                <option value="cultural">Cultural</option>
+                                <option value="other">Other</option>
+                              </>
+                            )}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Action buttons to trigger modals */}
+                      <button
+                        onClick={() => {
+                          if (activeTab === 'inquiries') handleOpenInquiryModal();
+                          else if (activeTab === 'posts') handleOpenPostModal();
+                          else if (activeTab === 'events') handleOpenEventModal();
+                        }}
+                        id="add-new-btn"
+                        className="bg-navy-800 hover:bg-navy-950 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center shadow transition-colors cursor-pointer shrink-0"
+                      >
+                        <Plus className="h-3.5 w-3.5 mr-1.5" /> 
+                        Add New {activeTab === 'inquiries' ? 'Inquiry' : activeTab === 'posts' ? 'Post' : 'Event'}
                       </button>
-                    )}
+                    </div>
                   </div>
-
-                  <div className="flex items-center space-x-3 shrink-0">
-                    {/* Secondary Filters for Specific Tabs */}
-                    {activeTab === 'inquiries' && (
-                      <div className="flex items-center space-x-2 text-xs">
-                        <Filter className="h-3.5 w-3.5 text-gray-400" />
-                        <select
-                          value={statusFilter}
-                          onChange={(e) => setStatusFilter(e.target.value)}
-                          className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-2 text-gray-600 focus:outline-none focus:border-gold-500"
-                        >
-                          <option value="all">All Statuses</option>
-                          <option value="pending">Pending</option>
-                          <option value="contacted">Contacted</option>
-                          <option value="resolved">Resolved</option>
-                        </select>
-                      </div>
-                    )}
-
-                    {(activeTab === 'posts' || activeTab === 'events') && (
-                      <div className="flex items-center space-x-2 text-xs">
-                        <Filter className="h-3.5 w-3.5 text-gray-400" />
-                        <select
-                          value={categoryFilter}
-                          onChange={(e) => setCategoryFilter(e.target.value)}
-                          className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-2 text-gray-600 focus:outline-none focus:border-gold-500"
-                        >
-                          <option value="all">All Categories</option>
-                          {activeTab === 'posts' ? (
-                            <>
-                              <option value="School News">School News</option>
-                              <option value="Academic Achievements">Academic Achievements</option>
-                              <option value="Announcements">Announcements</option>
-                              <option value="Notices">Notices</option>
-                            </>
-                          ) : (
-                            <>
-                              <option value="academic">Academic</option>
-                              <option value="sports">Sports</option>
-                              <option value="cultural">Cultural</option>
-                              <option value="other">Other</option>
-                            </>
-                          )}
-                        </select>
-                      </div>
-                    )}
-
-                    {/* Action buttons to trigger modals */}
-                    <button
-                      onClick={() => {
-                        if (activeTab === 'inquiries') handleOpenInquiryModal();
-                        else if (activeTab === 'posts') handleOpenPostModal();
-                        else if (activeTab === 'events') handleOpenEventModal();
-                      }}
-                      id="add-new-btn"
-                      className="bg-navy-800 hover:bg-navy-950 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center shadow transition-colors cursor-pointer shrink-0"
-                    >
-                      <Plus className="h-3.5 w-3.5 mr-1.5" /> 
-                      Add New {activeTab === 'inquiries' ? 'Inquiry' : activeTab === 'posts' ? 'Post' : 'Event'}
-                    </button>
-                  </div>
-                </div>
+                )}
 
                 {/* Sub Tab View Renderers */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-premium overflow-hidden">
@@ -1200,6 +1300,118 @@ export default function AdminPage() {
                               </table>
                             </div>
                           )}
+                        </div>
+                      )}
+
+                      {/* ==================================== */}
+                      {/* CAROUSEL VIEW */}
+                      {/* ==================================== */}
+                      {activeTab === 'carousel' && (
+                        <div className="p-6 space-y-6">
+                          <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 gap-4">
+                            <div>
+                              <h2 className="text-base font-bold text-navy-800 font-serif">Homepage Carousel Settings</h2>
+                              <p className="text-[11px] text-gray-400 mt-1">Manage the image slides that rotate automatically on the home page hero section.</p>
+                            </div>
+                            <div className="flex items-center space-x-2 text-xs">
+                              <span className="font-semibold text-gray-500">Rotate every:</span>
+                              <select
+                                value={carouselInterval}
+                                onChange={(e) => handleIntervalChange(Number(e.target.value))}
+                                className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 font-medium focus:outline-none focus:border-gold-500"
+                              >
+                                <option value={2}>2 seconds</option>
+                                <option value={3}>3 seconds</option>
+                                <option value={4}>4 seconds</option>
+                                <option value={5}>5 seconds</option>
+                                <option value={6}>6 seconds</option>
+                                <option value={8}>8 seconds</option>
+                                <option value={10}>10 seconds</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Upload and Paste Tools */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/50 p-4 rounded-xl border border-dashed border-gray-200">
+                            <div className="space-y-2">
+                              <label className="block text-xs font-bold text-navy-800">Paste Image URL</label>
+                              <div className="flex space-x-2">
+                                <input
+                                  type="text"
+                                  placeholder="https://example.com/slide.jpg"
+                                  value={newCarouselUrl}
+                                  onChange={(e) => setNewCarouselUrl(e.target.value)}
+                                  className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-gold-500"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (newCarouselUrl.trim()) {
+                                      const newImages = [...carouselImages, newCarouselUrl.trim()];
+                                      setCarouselImages(newImages);
+                                      saveCarouselSettings(newImages, carouselInterval);
+                                      setNewCarouselUrl("");
+                                    }
+                                  }}
+                                  className="bg-navy-800 hover:bg-navy-900 text-white px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer"
+                                >
+                                  Add URL
+                                </button>
+                              </div>
+                              <p className="text-[10px] text-gray-400">Add any direct link to an online image (from Unsplash, Picsum, etc.).</p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <label className="block text-xs font-bold text-navy-800">Upload Image File</label>
+                              <div className="relative">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleCarouselFileUpload}
+                                  disabled={isUploadingCarousel}
+                                  className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-gold-500 cursor-pointer file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                                />
+                              </div>
+                              <p className="text-[10px] text-gray-400">Upload a file from your computer. It is converted to safe offline storage instantly.</p>
+                            </div>
+                          </div>
+
+                          {/* Image Gallery Grid */}
+                          <div>
+                            <h3 className="text-xs font-bold text-navy-800 mb-3 font-semibold">Active Slides ({carouselImages.length})</h3>
+                            {carouselImages.length === 0 ? (
+                              <div className="text-center py-12 text-gray-400 text-xs border border-dashed rounded-xl">
+                                <Sparkles className="h-6 w-6 mx-auto mb-1 text-gray-300" />
+                                No carousel slides. Please add or upload some images above!
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                {carouselImages.map((img, idx) => (
+                                  <div key={idx} className="relative group border rounded-xl overflow-hidden bg-gray-50 aspect-video shadow-sm">
+                                    <img
+                                      src={img}
+                                      alt={`Slide ${idx + 1}`}
+                                      className="w-full h-full object-cover"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                    <div className="absolute top-1 left-1 bg-black/60 text-white font-mono font-bold text-[9px] px-1.5 py-0.5 rounded">
+                                      Slide {idx + 1}
+                                    </div>
+                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveCarouselImage(idx)}
+                                        className="p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-md transition-colors cursor-pointer"
+                                        title="Remove Slide"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </>
