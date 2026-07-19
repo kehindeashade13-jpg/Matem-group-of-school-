@@ -63,7 +63,12 @@ export async function GET() {
         inquiries: sanitizedInquiries,
         posts: sanitizedPosts,
         events: sanitizedEvents,
-        carousel: db.carousel
+        carousel: db.carousel,
+        carouselNurseryPrimary: db.carouselNurseryPrimary,
+        carouselSecondary: db.carouselSecondary,
+        carouselAcademicAchievement: db.carouselAcademicAchievement,
+        carouselAnnouncement: db.carouselAnnouncement,
+        carouselSchoolNews: db.carouselSchoolNews
       });
     } catch (err) {
       console.error("Supabase API error in GET /api/db:", err);
@@ -364,18 +369,33 @@ export async function POST(req: NextRequest) {
       }
 
       case 'update_carousel': {
-        const { images, intervalSeconds } = payload;
+        const { images, intervalSeconds, key } = payload;
         if (!images || !Array.isArray(images)) {
           return NextResponse.json({ error: 'Missing or invalid images array.' }, { status: 400 });
         }
 
         const db = getDatabase();
-        db.carousel = {
+        const carouselData = {
           images,
           intervalSeconds: Number(intervalSeconds) || 5
         };
+
+        if (key === 'nurseryPrimary') {
+          db.carouselNurseryPrimary = carouselData;
+        } else if (key === 'secondary') {
+          db.carouselSecondary = carouselData;
+        } else if (key === 'academicAchievement') {
+          db.carouselAcademicAchievement = carouselData;
+        } else if (key === 'announcement') {
+          db.carouselAnnouncement = carouselData;
+        } else if (key === 'schoolNews') {
+          db.carouselSchoolNews = carouselData;
+        } else {
+          db.carousel = carouselData;
+        }
+
         saveDatabase(db);
-        return NextResponse.json({ success: true, carousel: db.carousel });
+        return NextResponse.json({ success: true, db });
       }
 
       default: {

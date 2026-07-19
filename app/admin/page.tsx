@@ -137,6 +137,37 @@ export default function AdminPage() {
   const [isUploadingCarousel, setIsUploadingCarousel] = useState(false);
   const [carouselSaving, setCarouselSaving] = useState(false);
 
+  // New Carousels
+  const [carouselSubTab, setCarouselSubTab] = useState<'homepage' | 'nurseryPrimary' | 'secondary' | 'academicAchievement' | 'announcement' | 'schoolNews'>('homepage');
+  
+  const [nurseryPrimaryImages, setNurseryPrimaryImages] = useState<string[]>([]);
+  const [nurseryPrimaryInterval, setNurseryPrimaryInterval] = useState<number>(5);
+  const [newNurseryPrimaryUrl, setNewNurseryPrimaryUrl] = useState("");
+  const [isUploadingNurseryPrimary, setIsUploadingNurseryPrimary] = useState(false);
+
+  const [secondaryImages, setSecondaryImages] = useState<string[]>([]);
+  const [secondaryInterval, setSecondaryInterval] = useState<number>(5);
+  const [newSecondaryUrl, setNewSecondaryUrl] = useState("");
+  const [isUploadingSecondary, setIsUploadingSecondary] = useState(false);
+
+  const [academicAchievementImages, setAcademicAchievementImages] = useState<string[]>([]);
+  const [academicAchievementInterval, setAcademicAchievementInterval] = useState<number>(5);
+  const [newAcademicAchievementUrl, setNewAcademicAchievementUrl] = useState("");
+  const [isUploadingAcademicAchievement, setIsUploadingAcademicAchievement] = useState(false);
+
+  const [announcementImages, setAnnouncementImages] = useState<string[]>([]);
+  const [announcementInterval, setAnnouncementInterval] = useState<number>(5);
+  const [newAnnouncementUrl, setNewAnnouncementUrl] = useState("");
+  const [isUploadingAnnouncement, setIsUploadingAnnouncement] = useState(false);
+
+  const [schoolNewsImages, setSchoolNewsImages] = useState<string[]>([]);
+  const [schoolNewsInterval, setSchoolNewsInterval] = useState<number>(5);
+  const [newSchoolNewsUrl, setNewSchoolNewsUrl] = useState("");
+  const [isUploadingSchoolNews, setIsUploadingSchoolNews] = useState(false);
+
+  const [carouselSavingKey, setCarouselSavingKey] = useState<string | null>(null);
+  const [carouselSaveStatus, setCarouselSaveStatus] = useState<{[key: string]: 'idle' | 'saving' | 'success' | 'error'}>({});
+
   // Connection info
   const [isSupabaseConfigured, setIsSupabaseConfigured] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState("");
@@ -217,6 +248,26 @@ export default function AdminPage() {
         if (carouselData.carousel) {
           setCarouselImages(carouselData.carousel.images || []);
           setCarouselInterval(carouselData.carousel.intervalSeconds || 5);
+        }
+        if (carouselData.carouselNurseryPrimary) {
+          setNurseryPrimaryImages(carouselData.carouselNurseryPrimary.images || []);
+          setNurseryPrimaryInterval(carouselData.carouselNurseryPrimary.intervalSeconds || 5);
+        }
+        if (carouselData.carouselSecondary) {
+          setSecondaryImages(carouselData.carouselSecondary.images || []);
+          setSecondaryInterval(carouselData.carouselSecondary.intervalSeconds || 5);
+        }
+        if (carouselData.carouselAcademicAchievement) {
+          setAcademicAchievementImages(carouselData.carouselAcademicAchievement.images || []);
+          setAcademicAchievementInterval(carouselData.carouselAcademicAchievement.intervalSeconds || 5);
+        }
+        if (carouselData.carouselAnnouncement) {
+          setAnnouncementImages(carouselData.carouselAnnouncement.images || []);
+          setAnnouncementInterval(carouselData.carouselAnnouncement.intervalSeconds || 5);
+        }
+        if (carouselData.carouselSchoolNews) {
+          setSchoolNewsImages(carouselData.carouselSchoolNews.images || []);
+          setSchoolNewsInterval(carouselData.carouselSchoolNews.intervalSeconds || 5);
         }
       }
     } catch (err) {
@@ -353,8 +404,9 @@ export default function AdminPage() {
   // ==========================================
   // CAROUSEL SETTINGS ACTIONS
   // ==========================================
-  const saveCarouselSettings = async (updatedImages: string[], updatedInterval: number) => {
-    setCarouselSaving(true);
+  const saveCarouselSettings = async (key: string, updatedImages: string[], updatedInterval: number) => {
+    setCarouselSavingKey(key);
+    setCarouselSaveStatus(prev => ({ ...prev, [key]: 'saving' }));
     try {
       const response = await fetch('/api/db', {
         method: 'POST',
@@ -362,6 +414,7 @@ export default function AdminPage() {
         body: JSON.stringify({
           action: 'update_carousel',
           payload: {
+            key,
             images: updatedImages,
             intervalSeconds: updatedInterval
           }
@@ -369,47 +422,137 @@ export default function AdminPage() {
       });
       if (response.ok) {
         const data = await response.json();
-        if (data.carousel) {
-          setCarouselImages(data.carousel.images || []);
-          setCarouselInterval(data.carousel.intervalSeconds || 5);
+        const updatedDb = data.db;
+        if (updatedDb) {
+          if (key === 'homepage') {
+            setCarouselImages(updatedDb.carousel?.images || []);
+            setCarouselInterval(updatedDb.carousel?.intervalSeconds || 5);
+          } else if (key === 'nurseryPrimary') {
+            setNurseryPrimaryImages(updatedDb.carouselNurseryPrimary?.images || []);
+            setNurseryPrimaryInterval(updatedDb.carouselNurseryPrimary?.intervalSeconds || 5);
+          } else if (key === 'secondary') {
+            setSecondaryImages(updatedDb.carouselSecondary?.images || []);
+            setSecondaryInterval(updatedDb.carouselSecondary?.intervalSeconds || 5);
+          } else if (key === 'academicAchievement') {
+            setAcademicAchievementImages(updatedDb.carouselAcademicAchievement?.images || []);
+            setAcademicAchievementInterval(updatedDb.carouselAcademicAchievement?.intervalSeconds || 5);
+          } else if (key === 'announcement') {
+            setAnnouncementImages(updatedDb.carouselAnnouncement?.images || []);
+            setAnnouncementInterval(updatedDb.carouselAnnouncement?.intervalSeconds || 5);
+          } else if (key === 'schoolNews') {
+            setSchoolNewsImages(updatedDb.carouselSchoolNews?.images || []);
+            setSchoolNewsInterval(updatedDb.carouselSchoolNews?.intervalSeconds || 5);
+          }
         }
+        setCarouselSaveStatus(prev => ({ ...prev, [key]: 'success' }));
+        setTimeout(() => {
+          setCarouselSaveStatus(prev => ({ ...prev, [key]: 'idle' }));
+        }, 3000);
       } else {
         console.error("Failed to save carousel settings");
+        setCarouselSaveStatus(prev => ({ ...prev, [key]: 'error' }));
       }
     } catch (error) {
       console.error("Error saving carousel settings:", error);
+      setCarouselSaveStatus(prev => ({ ...prev, [key]: 'error' }));
     } finally {
-      setCarouselSaving(false);
+      setCarouselSavingKey(null);
     }
   };
 
-  const handleCarouselFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddUrl = (key: string, url: string) => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    if (key === 'homepage') {
+      setCarouselImages(prev => [...prev, trimmed]);
+      setNewCarouselUrl("");
+    } else if (key === 'nurseryPrimary') {
+      setNurseryPrimaryImages(prev => [...prev, trimmed]);
+      setNewNurseryPrimaryUrl("");
+    } else if (key === 'secondary') {
+      setSecondaryImages(prev => [...prev, trimmed]);
+      setNewSecondaryUrl("");
+    } else if (key === 'academicAchievement') {
+      setAcademicAchievementImages(prev => [...prev, trimmed]);
+      setNewAcademicAchievementUrl("");
+    } else if (key === 'announcement') {
+      setAnnouncementImages(prev => [...prev, trimmed]);
+      setNewAnnouncementUrl("");
+    } else if (key === 'schoolNews') {
+      setSchoolNewsImages(prev => [...prev, trimmed]);
+      setNewSchoolNewsUrl("");
+    }
+  };
+
+  const handleRemoveImage = (key: string, indexToRemove: number) => {
+    if (key === 'homepage') {
+      setCarouselImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    } else if (key === 'nurseryPrimary') {
+      setNurseryPrimaryImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    } else if (key === 'secondary') {
+      setSecondaryImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    } else if (key === 'academicAchievement') {
+      setAcademicAchievementImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    } else if (key === 'announcement') {
+      setAnnouncementImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    } else if (key === 'schoolNews') {
+      setSchoolNewsImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    }
+  };
+
+  const handleFileUpload = (key: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setIsUploadingCarousel(true);
+    if (key === 'homepage') setIsUploadingCarousel(true);
+    else if (key === 'nurseryPrimary') setIsUploadingNurseryPrimary(true);
+    else if (key === 'secondary') setIsUploadingSecondary(true);
+    else if (key === 'academicAchievement') setIsUploadingAcademicAchievement(true);
+    else if (key === 'announcement') setIsUploadingAnnouncement(true);
+    else if (key === 'schoolNews') setIsUploadingSchoolNews(true);
+
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64String = reader.result as string;
       if (base64String) {
-        const newImages = [...carouselImages, base64String];
-        setCarouselImages(newImages);
-        saveCarouselSettings(newImages, carouselInterval);
+        if (key === 'homepage') {
+          setCarouselImages(prev => [...prev, base64String]);
+        } else if (key === 'nurseryPrimary') {
+          setNurseryPrimaryImages(prev => [...prev, base64String]);
+        } else if (key === 'secondary') {
+          setSecondaryImages(prev => [...prev, base64String]);
+        } else if (key === 'academicAchievement') {
+          setAcademicAchievementImages(prev => [...prev, base64String]);
+        } else if (key === 'announcement') {
+          setAnnouncementImages(prev => [...prev, base64String]);
+        } else if (key === 'schoolNews') {
+          setSchoolNewsImages(prev => [...prev, base64String]);
+        }
       }
-      setIsUploadingCarousel(false);
+      if (key === 'homepage') setIsUploadingCarousel(false);
+      else if (key === 'nurseryPrimary') setIsUploadingNurseryPrimary(false);
+      else if (key === 'secondary') setIsUploadingSecondary(false);
+      else if (key === 'academicAchievement') setIsUploadingAcademicAchievement(false);
+      else if (key === 'announcement') setIsUploadingAnnouncement(false);
+      else if (key === 'schoolNews') setIsUploadingSchoolNews(false);
     };
     reader.readAsDataURL(file);
   };
 
-  const handleRemoveCarouselImage = (indexToRemove: number) => {
-    const newImages = carouselImages.filter((_, idx) => idx !== indexToRemove);
-    setCarouselImages(newImages);
-    saveCarouselSettings(newImages, carouselInterval);
-  };
-
-  const handleIntervalChange = (newInterval: number) => {
-    setCarouselInterval(newInterval);
-    saveCarouselSettings(carouselImages, newInterval);
+  const handleIntervalChange = (key: string, newInterval: number) => {
+    if (key === 'homepage') {
+      setCarouselInterval(newInterval);
+    } else if (key === 'nurseryPrimary') {
+      setNurseryPrimaryInterval(newInterval);
+    } else if (key === 'secondary') {
+      setSecondaryInterval(newInterval);
+    } else if (key === 'academicAchievement') {
+      setAcademicAchievementInterval(newInterval);
+    } else if (key === 'announcement') {
+      setAnnouncementInterval(newInterval);
+    } else if (key === 'schoolNews') {
+      setSchoolNewsInterval(newInterval);
+    }
   };
 
   // ==========================================
@@ -945,7 +1088,7 @@ export default function AdminPage() {
                   >
                     <div className="flex items-center">
                       <Images className="h-4 w-4 mr-2.5" />
-                      <span>Homepage Carousel</span>
+                      <span>Manage Carousels</span>
                     </div>
                   </button>
                 </div>
@@ -1304,114 +1447,244 @@ export default function AdminPage() {
                       )}
 
                       {/* ==================================== */}
+                      {/* ==================================== */}
                       {/* CAROUSEL VIEW */}
                       {/* ==================================== */}
                       {activeTab === 'carousel' && (
                         <div className="p-6 space-y-6">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 gap-4">
-                            <div>
-                              <h2 className="text-base font-bold text-navy-800 font-serif">Homepage Carousel Settings</h2>
-                              <p className="text-[11px] text-gray-400 mt-1">Manage the image slides that rotate automatically on the home page hero section.</p>
-                            </div>
-                            <div className="flex items-center space-x-2 text-xs">
-                              <span className="font-semibold text-gray-500">Rotate every:</span>
-                              <select
-                                value={carouselInterval}
-                                onChange={(e) => handleIntervalChange(Number(e.target.value))}
-                                className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 font-medium focus:outline-none focus:border-gold-500"
-                              >
-                                <option value={2}>2 seconds</option>
-                                <option value={3}>3 seconds</option>
-                                <option value={4}>4 seconds</option>
-                                <option value={5}>5 seconds</option>
-                                <option value={6}>6 seconds</option>
-                                <option value={8}>8 seconds</option>
-                                <option value={10}>10 seconds</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          {/* Upload and Paste Tools */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/50 p-4 rounded-xl border border-dashed border-gray-200">
-                            <div className="space-y-2">
-                              <label className="block text-xs font-bold text-navy-800">Paste Image URL</label>
-                              <div className="flex space-x-2">
-                                <input
-                                  type="text"
-                                  placeholder="https://example.com/slide.jpg"
-                                  value={newCarouselUrl}
-                                  onChange={(e) => setNewCarouselUrl(e.target.value)}
-                                  className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-gold-500"
-                                />
+                          {/* Carousel Selector / Sub-tab Navigation */}
+                          <div className="border-b border-gray-200">
+                            <nav className="flex flex-wrap -mb-px gap-2" aria-label="Tabs">
+                              {[
+                                { key: 'homepage', label: 'Homepage Slides' },
+                                { key: 'nurseryPrimary', label: 'Nursery & Primary' },
+                                { key: 'secondary', label: 'Secondary College' },
+                                { key: 'academicAchievement', label: 'Academic Achievement' },
+                                { key: 'announcement', label: 'Announcement' },
+                                { key: 'schoolNews', label: 'School News' }
+                              ].map((tab) => (
                                 <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (newCarouselUrl.trim()) {
-                                      const newImages = [...carouselImages, newCarouselUrl.trim()];
-                                      setCarouselImages(newImages);
-                                      saveCarouselSettings(newImages, carouselInterval);
-                                      setNewCarouselUrl("");
-                                    }
-                                  }}
-                                  className="bg-navy-800 hover:bg-navy-900 text-white px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer"
+                                  key={tab.key}
+                                  onClick={() => setCarouselSubTab(tab.key as any)}
+                                  className={`whitespace-nowrap py-2 px-3 border-b-2 font-medium text-xs transition-all cursor-pointer rounded-t-lg ${
+                                    carouselSubTab === tab.key
+                                      ? 'border-gold-500 text-navy-800 bg-gold-50/30'
+                                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                  }`}
                                 >
-                                  Add URL
+                                  {tab.label}
                                 </button>
-                              </div>
-                              <p className="text-[10px] text-gray-400">Add any direct link to an online image (from Unsplash, Picsum, etc.).</p>
-                            </div>
-
-                            <div className="space-y-2">
-                              <label className="block text-xs font-bold text-navy-800">Upload Image File</label>
-                              <div className="relative">
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={handleCarouselFileUpload}
-                                  disabled={isUploadingCarousel}
-                                  className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-gold-500 cursor-pointer file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
-                                />
-                              </div>
-                              <p className="text-[10px] text-gray-400">Upload a file from your computer. It is converted to safe offline storage instantly.</p>
-                            </div>
+                              ))}
+                            </nav>
                           </div>
 
-                          {/* Image Gallery Grid */}
-                          <div>
-                            <h3 className="text-xs font-bold text-navy-800 mb-3 font-semibold">Active Slides ({carouselImages.length})</h3>
-                            {carouselImages.length === 0 ? (
-                              <div className="text-center py-12 text-gray-400 text-xs border border-dashed rounded-xl">
-                                <Sparkles className="h-6 w-6 mx-auto mb-1 text-gray-300" />
-                                No carousel slides. Please add or upload some images above!
-                              </div>
-                            ) : (
-                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                {carouselImages.map((img, idx) => (
-                                  <div key={idx} className="relative group border rounded-xl overflow-hidden bg-gray-50 aspect-video shadow-sm">
-                                    <img
-                                      src={img}
-                                      alt={`Slide ${idx + 1}`}
-                                      className="w-full h-full object-cover"
-                                      referrerPolicy="no-referrer"
-                                    />
-                                    <div className="absolute top-1 left-1 bg-black/60 text-white font-mono font-bold text-[9px] px-1.5 py-0.5 rounded">
-                                      Slide {idx + 1}
-                                    </div>
-                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          {/* Render current subtab settings dynamically */}
+                          {(() => {
+                            // Map key to states and info
+                            let title = "Homepage Carousel Settings";
+                            let desc = "Manage the image slides that rotate automatically on the home page hero section.";
+                            let images: string[] = [];
+                            let interval = 5;
+                            let isUploading = false;
+                            let newUrl = "";
+                            let setNewUrl: (val: string) => void = () => {};
+
+                            if (carouselSubTab === 'homepage') {
+                              images = carouselImages;
+                              interval = carouselInterval;
+                              isUploading = isUploadingCarousel;
+                              newUrl = newCarouselUrl;
+                              setNewUrl = setNewCarouselUrl;
+                            } else if (carouselSubTab === 'nurseryPrimary') {
+                              title = "Nursery & Primary Carousel";
+                              desc = "Manage the carousel slides shown on the Nursery & Primary arm page.";
+                              images = nurseryPrimaryImages;
+                              interval = nurseryPrimaryInterval;
+                              isUploading = isUploadingNurseryPrimary;
+                              newUrl = newNurseryPrimaryUrl;
+                              setNewUrl = setNewNurseryPrimaryUrl;
+                            } else if (carouselSubTab === 'secondary') {
+                              title = "Secondary College Carousel";
+                              desc = "Manage the carousel slides shown on the Secondary College arm page.";
+                              images = secondaryImages;
+                              interval = secondaryInterval;
+                              isUploading = isUploadingSecondary;
+                              newUrl = newSecondaryUrl;
+                              setNewUrl = setNewSecondaryUrl;
+                            } else if (carouselSubTab === 'academicAchievement') {
+                              title = "Academic Achievement Carousel";
+                              desc = "Manage slides showcasing high-achieving pupils and school academic milestones.";
+                              images = academicAchievementImages;
+                              interval = academicAchievementInterval;
+                              isUploading = isUploadingAcademicAchievement;
+                              newUrl = newAcademicAchievementUrl;
+                              setNewUrl = setNewAcademicAchievementUrl;
+                            } else if (carouselSubTab === 'announcement') {
+                              title = "Announcement Carousel";
+                              desc = "Manage slides displaying urgent school announcements, notices, or upcoming schedules.";
+                              images = announcementImages;
+                              interval = announcementInterval;
+                              isUploading = isUploadingAnnouncement;
+                              newUrl = newAnnouncementUrl;
+                              setNewUrl = setNewAnnouncementUrl;
+                            } else if (carouselSubTab === 'schoolNews') {
+                              title = "School News Carousel";
+                              desc = "Manage slides illustrating school events, outings, and recent school news highlights.";
+                              images = schoolNewsImages;
+                              interval = schoolNewsInterval;
+                              isUploading = isUploadingSchoolNews;
+                              newUrl = newSchoolNewsUrl;
+                              setNewUrl = setNewSchoolNewsUrl;
+                            }
+
+                            const saveStatus = carouselSaveStatus[carouselSubTab] || 'idle';
+
+                            return (
+                              <div className="space-y-6 animate-fadeIn">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 gap-4">
+                                  <div>
+                                    <h2 className="text-base font-bold text-navy-800 font-serif flex items-center">
+                                      <Images className="h-4 w-4 mr-2 text-gold-500" />
+                                      {title}
+                                    </h2>
+                                    <p className="text-[11px] text-gray-400 mt-1">{desc}</p>
+                                  </div>
+                                  <div className="flex items-center space-x-2 text-xs">
+                                    <span className="font-semibold text-gray-500">Rotate every:</span>
+                                    <select
+                                      value={interval}
+                                      onChange={(e) => handleIntervalChange(carouselSubTab, Number(e.target.value))}
+                                      className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 font-medium focus:outline-none focus:border-gold-500"
+                                    >
+                                      <option value={2}>2 seconds</option>
+                                      <option value={3}>3 seconds</option>
+                                      <option value={4}>4 seconds</option>
+                                      <option value={5}>5 seconds</option>
+                                      <option value={6}>6 seconds</option>
+                                      <option value={8}>8 seconds</option>
+                                      <option value={10}>10 seconds</option>
+                                    </select>
+                                  </div>
+                                </div>
+
+                                {/* Upload and Paste Tools */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/50 p-4 rounded-xl border border-dashed border-gray-200">
+                                  <div className="space-y-2">
+                                    <label className="block text-xs font-bold text-navy-800">Paste Image URL</label>
+                                    <div className="flex space-x-2">
+                                      <input
+                                        type="text"
+                                        placeholder="https://example.com/slide.jpg"
+                                        value={newUrl}
+                                        onChange={(e) => setNewUrl(e.target.value)}
+                                        className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-gold-500"
+                                      />
                                       <button
                                         type="button"
-                                        onClick={() => handleRemoveCarouselImage(idx)}
-                                        className="p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-md transition-colors cursor-pointer"
-                                        title="Remove Slide"
+                                        onClick={() => handleAddUrl(carouselSubTab, newUrl)}
+                                        className="bg-navy-800 hover:bg-navy-900 text-white px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer"
                                       >
-                                        <Trash2 className="h-3.5 w-3.5" />
+                                        Add URL
                                       </button>
                                     </div>
+                                    <p className="text-[10px] text-gray-400">Add any direct link to an online image (from Unsplash, Picsum, etc.).</p>
                                   </div>
-                                ))}
+
+                                  <div className="space-y-2">
+                                    <label className="block text-xs font-bold text-navy-800">Upload Image File</label>
+                                    <div className="relative">
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => handleFileUpload(carouselSubTab, e)}
+                                        disabled={isUploading}
+                                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-gold-500 cursor-pointer file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                                      />
+                                    </div>
+                                    <p className="text-[10px] text-gray-400">Upload a file from your computer. It is converted to safe offline storage instantly.</p>
+                                  </div>
+                                </div>
+
+                                {/* Image Gallery Grid */}
+                                <div>
+                                  <h3 className="text-xs font-bold text-navy-800 mb-3 font-semibold">Active Slides ({images.length})</h3>
+                                  {images.length === 0 ? (
+                                    <div className="text-center py-12 text-gray-400 text-xs border border-dashed rounded-xl">
+                                      <Sparkles className="h-6 w-6 mx-auto mb-1 text-gray-300" />
+                                      No carousel slides. Please add or upload some images above!
+                                    </div>
+                                  ) : (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                      {images.map((img, idx) => (
+                                        <div key={idx} className="relative group border rounded-xl overflow-hidden bg-gray-50 aspect-video shadow-sm">
+                                          <img
+                                            src={img}
+                                            alt={`Slide ${idx + 1}`}
+                                            className="w-full h-full object-cover"
+                                            referrerPolicy="no-referrer"
+                                          />
+                                          <div className="absolute top-1 left-1 bg-black/60 text-white font-mono font-bold text-[9px] px-1.5 py-0.5 rounded">
+                                            Slide {idx + 1}
+                                          </div>
+                                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <button
+                                              type="button"
+                                              onClick={() => handleRemoveImage(carouselSubTab, idx)}
+                                              className="p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-md transition-colors cursor-pointer"
+                                              title="Remove Slide"
+                                            >
+                                              <Trash2 className="h-3.5 w-3.5" />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* SAVE AND PROCESS BUTTON (REQUIRED BY USER) */}
+                                <div className="pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                  <div className="text-xs text-gray-400 max-w-md">
+                                    <span className="font-semibold text-navy-800">Important Note:</span> After making additions, edits, or deletions, click the <strong className="text-navy-800">Save and Process</strong> button to write these slides to the database and update the live website.
+                                  </div>
+                                  <div className="flex items-center space-x-3 w-full sm:w-auto shrink-0 justify-end">
+                                    {saveStatus === 'success' && (
+                                      <span className="text-xs text-green-600 font-bold flex items-center animate-bounce">
+                                        ✓ Saved & Processed successfully!
+                                      </span>
+                                    )}
+                                    {saveStatus === 'error' && (
+                                      <span className="text-xs text-red-600 font-bold flex items-center">
+                                        ✗ Failed to save settings.
+                                      </span>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => saveCarouselSettings(carouselSubTab, images, interval)}
+                                      disabled={carouselSavingKey !== null}
+                                      className={`w-full sm:w-auto flex items-center justify-center px-5 py-2.5 rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer ${
+                                        carouselSavingKey === carouselSubTab
+                                          ? 'bg-gray-400 text-white cursor-not-allowed'
+                                          : 'bg-gold-500 hover:bg-gold-600 text-navy-950 hover:shadow-lg'
+                                      }`}
+                                    >
+                                      {carouselSavingKey === carouselSubTab ? (
+                                        <>
+                                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                          </svg>
+                                          Processing...
+                                        </>
+                                      ) : (
+                                        "Save and Process"
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
-                            )}
-                          </div>
+                            );
+                          })()}
                         </div>
                       )}
                     </>

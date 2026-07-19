@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import WhatsAppButton from '@/components/WhatsAppButton';
+import CampusCarousel from '@/components/CampusCarousel';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Newspaper, Calendar, User, ArrowRight, X, 
@@ -18,13 +19,33 @@ export default function NewsPage() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
 
+  const [academicAchievementImages, setAcademicAchievementImages] = useState<string[]>([]);
+  const [academicAchievementInterval, setAcademicAchievementInterval] = useState(5);
+  const [announcementImages, setAnnouncementImages] = useState<string[]>([]);
+  const [announcementInterval, setAnnouncementInterval] = useState(5);
+  const [schoolNewsImages, setSchoolNewsImages] = useState<string[]>([]);
+  const [schoolNewsInterval, setSchoolNewsInterval] = useState(5);
+
   useEffect(() => {
-    const fetchPosts = async () => {
+    const fetchPostsAndCarousels = async () => {
       try {
         const response = await fetch('/api/db');
         if (response.ok) {
           const data = await response.json();
           setPosts(data.posts || []);
+
+          if (data.carouselAcademicAchievement && data.carouselAcademicAchievement.images?.length > 0) {
+            setAcademicAchievementImages(data.carouselAcademicAchievement.images);
+            setAcademicAchievementInterval(data.carouselAcademicAchievement.intervalSeconds || 5);
+          }
+          if (data.carouselAnnouncement && data.carouselAnnouncement.images?.length > 0) {
+            setAnnouncementImages(data.carouselAnnouncement.images);
+            setAnnouncementInterval(data.carouselAnnouncement.intervalSeconds || 5);
+          }
+          if (data.carouselSchoolNews && data.carouselSchoolNews.images?.length > 0) {
+            setSchoolNewsImages(data.carouselSchoolNews.images);
+            setSchoolNewsInterval(data.carouselSchoolNews.intervalSeconds || 5);
+          }
 
           // Check if there is an id in the URL to open directly
           const searchParams = new URLSearchParams(window.location.search);
@@ -35,10 +56,10 @@ export default function NewsPage() {
           }
         }
       } catch (error) {
-        console.error('Error fetching blog posts:', error);
+        console.error('Error fetching blog posts and carousels:', error);
       }
     };
-    fetchPosts();
+    fetchPostsAndCarousels();
   }, []);
 
   const categories = ['All', 'School News', 'Academic Achievements', 'Announcements', 'Notices'];
@@ -111,6 +132,58 @@ export default function NewsPage() {
               ))}
             </div>
           </div>
+
+          {/* Category-Specific Dynamic Carousel Sliders */}
+          {activeCategory === 'School News' && schoolNewsImages.length > 0 && (
+            <div className="space-y-3 animate-fadeIn">
+              <h3 className="text-sm font-bold text-navy-800 font-serif flex items-center">
+                <span className="w-2 h-2 rounded-full bg-gold-500 mr-2 inline-block animate-pulse" />
+                Active School News Highlights
+              </h3>
+              <div className="h-64 sm:h-96 w-full rounded-2xl overflow-hidden shadow-premium">
+                <CampusCarousel
+                  images={schoolNewsImages}
+                  intervalSeconds={schoolNewsInterval}
+                  altText="School News Spotlight"
+                  aspectRatio="h-full w-full"
+                />
+              </div>
+            </div>
+          )}
+
+          {activeCategory === 'Academic Achievements' && academicAchievementImages.length > 0 && (
+            <div className="space-y-3 animate-fadeIn">
+              <h3 className="text-sm font-bold text-navy-800 font-serif flex items-center">
+                <span className="w-2 h-2 rounded-full bg-gold-500 mr-2 inline-block animate-pulse" />
+                Active Academic Achievements Spotlight
+              </h3>
+              <div className="h-64 sm:h-96 w-full rounded-2xl overflow-hidden shadow-premium">
+                <CampusCarousel
+                  images={academicAchievementImages}
+                  intervalSeconds={academicAchievementInterval}
+                  altText="Academic Spotlight"
+                  aspectRatio="h-full w-full"
+                />
+              </div>
+            </div>
+          )}
+
+          {activeCategory === 'Announcements' && announcementImages.length > 0 && (
+            <div className="space-y-3 animate-fadeIn">
+              <h3 className="text-sm font-bold text-navy-800 font-serif flex items-center">
+                <span className="w-2 h-2 rounded-full bg-gold-500 mr-2 inline-block animate-pulse" />
+                Active Announcements Board
+              </h3>
+              <div className="h-64 sm:h-96 w-full rounded-2xl overflow-hidden shadow-premium">
+                <CampusCarousel
+                  images={announcementImages}
+                  intervalSeconds={announcementInterval}
+                  altText="School Announcement Spotlight"
+                  aspectRatio="h-full w-full"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Featured Post (only shown when No search/filter active) */}
           {activeCategory === 'All' && searchQuery === '' && featuredPost && (

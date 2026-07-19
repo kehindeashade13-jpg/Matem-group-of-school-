@@ -43,7 +43,12 @@ export interface SchoolDatabase {
   inquiries: Inquiry[];
   posts: BlogPost[];
   events: EventItem[];
-  carousel?: CarouselSettings;
+  carousel?: CarouselSettings; // homepage
+  carouselNurseryPrimary?: CarouselSettings;
+  carouselSecondary?: CarouselSettings;
+  carouselAcademicAchievement?: CarouselSettings;
+  carouselAnnouncement?: CarouselSettings;
+  carouselSchoolNews?: CarouselSettings;
 }
 
 const DB_DIR = path.join(process.cwd(), 'data');
@@ -171,6 +176,46 @@ export function getDatabase(): SchoolDatabase {
     intervalSeconds: 5
   };
 
+  const defaultNurseryPrimary: CarouselSettings = {
+    images: [
+      'https://picsum.photos/seed/nursery1/1200/800',
+      'https://picsum.photos/seed/nursery2/1200/800'
+    ],
+    intervalSeconds: 5
+  };
+
+  const defaultSecondary: CarouselSettings = {
+    images: [
+      'https://picsum.photos/seed/secondary1/1200/800',
+      'https://picsum.photos/seed/secondary2/1200/800'
+    ],
+    intervalSeconds: 5
+  };
+
+  const defaultAcademicAchievement: CarouselSettings = {
+    images: [
+      'https://picsum.photos/seed/achievement1/1200/800',
+      'https://picsum.photos/seed/achievement2/1200/800'
+    ],
+    intervalSeconds: 5
+  };
+
+  const defaultAnnouncement: CarouselSettings = {
+    images: [
+      'https://picsum.photos/seed/announcement1/1200/800',
+      'https://picsum.photos/seed/announcement2/1200/800'
+    ],
+    intervalSeconds: 5
+  };
+
+  const defaultSchoolNews: CarouselSettings = {
+    images: [
+      'https://picsum.photos/seed/news1/1200/800',
+      'https://picsum.photos/seed/news2/1200/800'
+    ],
+    intervalSeconds: 5
+  };
+
   try {
     if (!fs.existsSync(DB_DIR)) {
       fs.mkdirSync(DB_DIR, { recursive: true });
@@ -182,6 +227,11 @@ export function getDatabase(): SchoolDatabase {
         posts: INITIAL_POSTS,
         events: INITIAL_EVENTS,
         carousel: defaultCarousel,
+        carouselNurseryPrimary: defaultNurseryPrimary,
+        carouselSecondary: defaultSecondary,
+        carouselAcademicAchievement: defaultAcademicAchievement,
+        carouselAnnouncement: defaultAnnouncement,
+        carouselSchoolNews: defaultSchoolNews
       };
       fs.writeFileSync(DB_FILE, JSON.stringify(initialDb, null, 2), 'utf-8');
       return initialDb;
@@ -189,9 +239,34 @@ export function getDatabase(): SchoolDatabase {
 
     const dataStr = fs.readFileSync(DB_FILE, 'utf-8');
     const db = JSON.parse(dataStr) as SchoolDatabase;
+    
+    let needsSave = false;
     if (!db.carousel) {
       db.carousel = defaultCarousel;
-      // Save it back to write the migration
+      needsSave = true;
+    }
+    if (!db.carouselNurseryPrimary) {
+      db.carouselNurseryPrimary = defaultNurseryPrimary;
+      needsSave = true;
+    }
+    if (!db.carouselSecondary) {
+      db.carouselSecondary = defaultSecondary;
+      needsSave = true;
+    }
+    if (!db.carouselAcademicAchievement) {
+      db.carouselAcademicAchievement = defaultAcademicAchievement;
+      needsSave = true;
+    }
+    if (!db.carouselAnnouncement) {
+      db.carouselAnnouncement = defaultAnnouncement;
+      needsSave = true;
+    }
+    if (!db.carouselSchoolNews) {
+      db.carouselSchoolNews = defaultSchoolNews;
+      needsSave = true;
+    }
+
+    if (needsSave) {
       fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');
     }
     return db;
@@ -202,6 +277,11 @@ export function getDatabase(): SchoolDatabase {
       posts: INITIAL_POSTS,
       events: INITIAL_EVENTS,
       carousel: defaultCarousel,
+      carouselNurseryPrimary: defaultNurseryPrimary,
+      carouselSecondary: defaultSecondary,
+      carouselAcademicAchievement: defaultAcademicAchievement,
+      carouselAnnouncement: defaultAnnouncement,
+      carouselSchoolNews: defaultSchoolNews
     };
   }
 }

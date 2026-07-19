@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import WhatsAppButton from '@/components/WhatsAppButton';
+import CampusCarousel from '@/components/CampusCarousel';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   BookOpen, Sparkles, GraduationCap, Laptop, Compass, 
@@ -72,6 +73,44 @@ const EXTRACURRICULAR = [
 
 export default function AcademicsPage() {
   const [activeTab, setActiveTab] = useState<'primary' | 'college'>('primary');
+  const [nurseryPrimaryImages, setNurseryPrimaryImages] = useState<string[]>([
+    'https://picsum.photos/seed/primary_class/600/500',
+    'https://picsum.photos/seed/primary_play/600/500',
+    'https://picsum.photos/seed/primary_draw/600/500'
+  ]);
+  const [nurseryPrimaryInterval, setNurseryPrimaryInterval] = useState(5);
+  const [secondaryImages, setSecondaryImages] = useState<string[]>([
+    'https://picsum.photos/seed/college_student/600/500',
+    'https://picsum.photos/seed/college_math/600/500',
+    'https://picsum.photos/seed/college_lab/600/500'
+  ]);
+  const [secondaryInterval, setSecondaryInterval] = useState(5);
+
+  useEffect(() => {
+    const fetchCarousels = async () => {
+      try {
+        const response = await fetch('/api/db');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.carouselNurseryPrimary && data.carouselNurseryPrimary.images?.length > 0) {
+            setNurseryPrimaryImages(data.carouselNurseryPrimary.images);
+            if (data.carouselNurseryPrimary.intervalSeconds) {
+              setNurseryPrimaryInterval(data.carouselNurseryPrimary.intervalSeconds);
+            }
+          }
+          if (data.carouselSecondary && data.carouselSecondary.images?.length > 0) {
+            setSecondaryImages(data.carouselSecondary.images);
+            if (data.carouselSecondary.intervalSeconds) {
+              setSecondaryInterval(data.carouselSecondary.intervalSeconds);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading academic carousels:', error);
+      }
+    };
+    fetchCarousels();
+  }, []);
 
   return (
     <>
@@ -152,11 +191,12 @@ export default function AcademicsPage() {
                       Classes are kept small (maximum of 20 pupils) to ensure our teachers can track every pupil&apos;s developmental progress. Under our custom ScratchJr and Scratch coding program, our pupils begin writing visual computer programs as early as Primary 2.
                     </p>
                   </div>
-                  <div className="lg:col-span-5 relative h-64 sm:h-80 rounded-2xl overflow-hidden shadow-premium">
-                    <img
-                      src="https://picsum.photos/seed/primary_class/600/500"
-                      alt="Primary School Pupils"
-                      className="object-cover w-full h-full"
+                  <div className="lg:col-span-5 relative min-h-[250px] sm:min-h-[320px] rounded-2xl overflow-hidden shadow-premium">
+                    <CampusCarousel
+                      images={nurseryPrimaryImages}
+                      intervalSeconds={nurseryPrimaryInterval}
+                      altText="Matem Private School"
+                      aspectRatio="h-full w-full"
                     />
                   </div>
                 </div>
@@ -222,11 +262,12 @@ export default function AcademicsPage() {
                       We operate specialized, safe physics, chemistry, biology, and agricultural sciences fields, ensuring every theoretical subject is proven in practical research laboratories. In addition, students are introduced to Python coding, database basics, and public speech logic.
                     </p>
                   </div>
-                  <div className="lg:col-span-5 relative h-64 sm:h-80 rounded-2xl overflow-hidden shadow-premium">
-                    <img
-                      src="https://picsum.photos/seed/college_student/600/500"
-                      alt="College Laboratory Students"
-                      className="object-cover w-full h-full"
+                  <div className="lg:col-span-5 relative min-h-[250px] sm:min-h-[320px] rounded-2xl overflow-hidden shadow-premium">
+                    <CampusCarousel
+                      images={secondaryImages}
+                      intervalSeconds={secondaryInterval}
+                      altText="Matem College"
+                      aspectRatio="h-full w-full"
                     />
                   </div>
                 </div>
