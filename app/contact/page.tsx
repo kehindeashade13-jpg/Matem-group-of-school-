@@ -52,6 +52,26 @@ export default function ContactPage() {
       const data = await response.json();
       if (response.ok && data.success) {
         setSuccess(true);
+        
+        // Construct pre-filled email details
+        const subject = encodeURIComponent(`Matem Schools Website Inquiry - ${formData.name}`);
+        const body = encodeURIComponent(
+          `Hello Matem Schools Administrative Office,\n\n` +
+          `I am writing to you regarding: ${formData.purpose.toUpperCase()} (${formData.arm === 'private-school' ? 'Matem Private School' : 'Matem College'}).\n\n` +
+          `My message details:\n` +
+          `--------------------------------------------------\n` +
+          `${formData.message}\n` +
+          `--------------------------------------------------\n\n` +
+          `My Contact Information:\n` +
+          `- Full Name: ${formData.name}\n` +
+          `- Phone Number: ${formData.phone}\n` +
+          `- Email Address: ${formData.email}\n\n` +
+          `Thank you.`
+        );
+
+        // Open native email client to send directly to school's email address
+        window.location.href = `mailto:matemschools126@gmail.com?subject=${subject}&body=${body}`;
+
         setFormData({
           name: '',
           phone: '',
@@ -341,6 +361,9 @@ export default function ContactPage() {
                         </>
                       )}
                     </button>
+                    <p className="text-[10px] text-gray-400 text-center leading-normal mt-2">
+                      💡 <strong>Note:</strong> Sending will automatically save your inquiry to our records and open your email application to send directly to <strong>matemschools126@gmail.com</strong>.
+                    </p>
                   </form>
                 )}
               </div>

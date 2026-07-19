@@ -209,6 +209,8 @@ export default function AdminPage() {
     author: 'Principal\'s Desk'
   });
 
+  const [isUploadingPostImage, setIsUploadingPostImage] = useState(false);
+
   const [eventForm, setEventForm] = useState<Omit<EventItem, 'id' | 'created_at'>>({
     title: '',
     description: '',
@@ -535,6 +537,28 @@ export default function AdminPage() {
       else if (key === 'academicAchievement') setIsUploadingAcademicAchievement(false);
       else if (key === 'announcement') setIsUploadingAnnouncement(false);
       else if (key === 'schoolNews') setIsUploadingSchoolNews(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePostImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Limit size to 5MB for base64 storage safety
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image is too large. Please select an image under 5MB.");
+      return;
+    }
+
+    setIsUploadingPostImage(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      if (base64String) {
+        setPostForm(prev => ({ ...prev, image: base64String }));
+      }
+      setIsUploadingPostImage(false);
     };
     reader.readAsDataURL(file);
   };
@@ -1920,40 +1944,82 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="block text-gray-700 font-bold">Cover Image URL</label>
-                  <input
-                    type="url"
-                    required
-                    placeholder="Enter absolute image URL or direct link..."
-                    value={postForm.image}
-                    onChange={(e) => setPostForm({ ...postForm, image: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 font-mono"
-                  />
-                  <div className="flex space-x-2 mt-1">
-                    <button
-                      type="button"
-                      onClick={() => setPostForm({ ...postForm, image: 'https://picsum.photos/seed/science/800/600' })}
-                      className="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-600 px-2.5 py-1 rounded"
-                    >
-                      Sample Science Cover
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPostForm({ ...postForm, image: 'https://picsum.photos/seed/school/800/600' })}
-                      className="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-600 px-2.5 py-1 rounded"
-                    >
-                      Sample Campus Cover
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPostForm({ ...postForm, image: 'https://picsum.photos/seed/sports/800/600' })}
-                      className="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-600 px-2.5 py-1 rounded"
-                    >
-                      Sample Sports Cover
-                    </button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-gray-700 font-bold">Cover Image URL</label>
+                    <input
+                      type="text"
+                      placeholder="Enter absolute image URL..."
+                      value={postForm.image.startsWith('data:image/') ? '' : postForm.image}
+                      onChange={(e) => setPostForm({ ...postForm, image: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 font-mono text-xs"
+                    />
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      <button
+                        type="button"
+                        onClick={() => setPostForm({ ...postForm, image: 'https://picsum.photos/seed/science/800/600' })}
+                        className="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-0.5 rounded cursor-pointer"
+                      >
+                        Science Cover
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPostForm({ ...postForm, image: 'https://picsum.photos/seed/school/800/600' })}
+                        className="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-0.5 rounded cursor-pointer"
+                      >
+                        Campus Cover
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPostForm({ ...postForm, image: 'https://picsum.photos/seed/sports/800/600' })}
+                        className="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-0.5 rounded cursor-pointer"
+                      >
+                        Sports Cover
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-gray-700 font-bold">Or Upload Cover Image File</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePostImageUpload}
+                      disabled={isUploadingPostImage}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-gold-500 cursor-pointer text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                    />
+                    {isUploadingPostImage && <p className="text-[10px] text-gray-400">Processing cover image...</p>}
+                    {postForm.image && (
+                      <div className="mt-1 flex items-center space-x-2">
+                        <span className="text-[10px] text-green-600 font-semibold">✓ Image set</span>
+                        {postForm.image.startsWith('data:image/') && (
+                          <span className="text-[9px] bg-gold-50 text-gold-700 px-1 py-0.2 rounded border border-gold-200 font-semibold">Uploaded File</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setPostForm({ ...postForm, image: '' })}
+                          className="text-[9px] text-red-600 hover:underline cursor-pointer font-bold"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {postForm.image && (
+                  <div className="space-y-1 bg-gray-50 p-2.5 rounded-xl border border-gray-100 max-w-sm">
+                    <span className="block text-gray-500 text-[10px] font-bold">Cover Image Preview:</span>
+                    <div className="relative aspect-video max-w-[200px] rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm">
+                      <img
+                        src={postForm.image}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-1.5">
                   <label className="block text-gray-700 font-bold">Short Excerpt (Summary)</label>
