@@ -138,7 +138,7 @@ export default function AdminPage() {
   const [carouselSaving, setCarouselSaving] = useState(false);
 
   // New Carousels
-  const [carouselSubTab, setCarouselSubTab] = useState<'homepage' | 'nurseryPrimary' | 'secondary' | 'academicAchievement' | 'announcement' | 'schoolNews'>('homepage');
+  const [carouselSubTab, setCarouselSubTab] = useState<'homepage' | 'nurseryPrimary' | 'secondary' | 'academicAchievement' | 'gallery' | 'event'>('homepage');
   
   const [nurseryPrimaryImages, setNurseryPrimaryImages] = useState<string[]>([]);
   const [nurseryPrimaryInterval, setNurseryPrimaryInterval] = useState<number>(5);
@@ -155,15 +155,15 @@ export default function AdminPage() {
   const [newAcademicAchievementUrl, setNewAcademicAchievementUrl] = useState("");
   const [isUploadingAcademicAchievement, setIsUploadingAcademicAchievement] = useState(false);
 
-  const [announcementImages, setAnnouncementImages] = useState<string[]>([]);
-  const [announcementInterval, setAnnouncementInterval] = useState<number>(5);
-  const [newAnnouncementUrl, setNewAnnouncementUrl] = useState("");
-  const [isUploadingAnnouncement, setIsUploadingAnnouncement] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [galleryInterval, setGalleryInterval] = useState<number>(5);
+  const [newGalleryUrl, setNewGalleryUrl] = useState("");
+  const [isUploadingGallery, setIsUploadingGallery] = useState(false);
 
-  const [schoolNewsImages, setSchoolNewsImages] = useState<string[]>([]);
-  const [schoolNewsInterval, setSchoolNewsInterval] = useState<number>(5);
-  const [newSchoolNewsUrl, setNewSchoolNewsUrl] = useState("");
-  const [isUploadingSchoolNews, setIsUploadingSchoolNews] = useState(false);
+  const [eventImages, setEventImages] = useState<string[]>([]);
+  const [eventInterval, setEventInterval] = useState<number>(5);
+  const [newEventUrl, setNewEventUrl] = useState("");
+  const [isUploadingEvent, setIsUploadingEvent] = useState(false);
 
   const [carouselSavingKey, setCarouselSavingKey] = useState<string | null>(null);
   const [carouselSaveStatus, setCarouselSaveStatus] = useState<{[key: string]: 'idle' | 'saving' | 'success' | 'error'}>({});
@@ -263,13 +263,13 @@ export default function AdminPage() {
           setAcademicAchievementImages(carouselData.carouselAcademicAchievement.images || []);
           setAcademicAchievementInterval(carouselData.carouselAcademicAchievement.intervalSeconds || 5);
         }
-        if (carouselData.carouselAnnouncement) {
-          setAnnouncementImages(carouselData.carouselAnnouncement.images || []);
-          setAnnouncementInterval(carouselData.carouselAnnouncement.intervalSeconds || 5);
+        if (carouselData.carouselGallery) {
+          setGalleryImages(carouselData.carouselGallery.images || []);
+          setGalleryInterval(carouselData.carouselGallery.intervalSeconds || 5);
         }
-        if (carouselData.carouselSchoolNews) {
-          setSchoolNewsImages(carouselData.carouselSchoolNews.images || []);
-          setSchoolNewsInterval(carouselData.carouselSchoolNews.intervalSeconds || 5);
+        if (carouselData.carouselEvent) {
+          setEventImages(carouselData.carouselEvent.images || []);
+          setEventInterval(carouselData.carouselEvent.intervalSeconds || 5);
         }
       }
     } catch (err) {
@@ -438,12 +438,12 @@ export default function AdminPage() {
           } else if (key === 'academicAchievement') {
             setAcademicAchievementImages(updatedDb.carouselAcademicAchievement?.images || []);
             setAcademicAchievementInterval(updatedDb.carouselAcademicAchievement?.intervalSeconds || 5);
-          } else if (key === 'announcement') {
-            setAnnouncementImages(updatedDb.carouselAnnouncement?.images || []);
-            setAnnouncementInterval(updatedDb.carouselAnnouncement?.intervalSeconds || 5);
-          } else if (key === 'schoolNews') {
-            setSchoolNewsImages(updatedDb.carouselSchoolNews?.images || []);
-            setSchoolNewsInterval(updatedDb.carouselSchoolNews?.intervalSeconds || 5);
+          } else if (key === 'gallery') {
+            setGalleryImages(updatedDb.carouselGallery?.images || []);
+            setGalleryInterval(updatedDb.carouselGallery?.intervalSeconds || 5);
+          } else if (key === 'event') {
+            setEventImages(updatedDb.carouselEvent?.images || []);
+            setEventInterval(updatedDb.carouselEvent?.intervalSeconds || 5);
           }
         }
         setCarouselSaveStatus(prev => ({ ...prev, [key]: 'success' }));
@@ -477,12 +477,12 @@ export default function AdminPage() {
     } else if (key === 'academicAchievement') {
       setAcademicAchievementImages(prev => [...prev, trimmed]);
       setNewAcademicAchievementUrl("");
-    } else if (key === 'announcement') {
-      setAnnouncementImages(prev => [...prev, trimmed]);
-      setNewAnnouncementUrl("");
-    } else if (key === 'schoolNews') {
-      setSchoolNewsImages(prev => [...prev, trimmed]);
-      setNewSchoolNewsUrl("");
+    } else if (key === 'gallery') {
+      setGalleryImages(prev => [...prev, trimmed]);
+      setNewGalleryUrl("");
+    } else if (key === 'event') {
+      setEventImages(prev => [...prev, trimmed]);
+      setNewEventUrl("");
     }
   };
 
@@ -495,10 +495,10 @@ export default function AdminPage() {
       setSecondaryImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
     } else if (key === 'academicAchievement') {
       setAcademicAchievementImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
-    } else if (key === 'announcement') {
-      setAnnouncementImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
-    } else if (key === 'schoolNews') {
-      setSchoolNewsImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    } else if (key === 'gallery') {
+      setGalleryImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    } else if (key === 'event') {
+      setEventImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
     }
   };
 
@@ -510,8 +510,8 @@ export default function AdminPage() {
     else if (key === 'nurseryPrimary') setIsUploadingNurseryPrimary(true);
     else if (key === 'secondary') setIsUploadingSecondary(true);
     else if (key === 'academicAchievement') setIsUploadingAcademicAchievement(true);
-    else if (key === 'announcement') setIsUploadingAnnouncement(true);
-    else if (key === 'schoolNews') setIsUploadingSchoolNews(true);
+    else if (key === 'gallery') setIsUploadingGallery(true);
+    else if (key === 'event') setIsUploadingEvent(true);
 
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -525,18 +525,18 @@ export default function AdminPage() {
           setSecondaryImages(prev => [...prev, base64String]);
         } else if (key === 'academicAchievement') {
           setAcademicAchievementImages(prev => [...prev, base64String]);
-        } else if (key === 'announcement') {
-          setAnnouncementImages(prev => [...prev, base64String]);
-        } else if (key === 'schoolNews') {
-          setSchoolNewsImages(prev => [...prev, base64String]);
+        } else if (key === 'gallery') {
+          setGalleryImages(prev => [...prev, base64String]);
+        } else if (key === 'event') {
+          setEventImages(prev => [...prev, base64String]);
         }
       }
       if (key === 'homepage') setIsUploadingCarousel(false);
       else if (key === 'nurseryPrimary') setIsUploadingNurseryPrimary(false);
       else if (key === 'secondary') setIsUploadingSecondary(false);
       else if (key === 'academicAchievement') setIsUploadingAcademicAchievement(false);
-      else if (key === 'announcement') setIsUploadingAnnouncement(false);
-      else if (key === 'schoolNews') setIsUploadingSchoolNews(false);
+      else if (key === 'gallery') setIsUploadingGallery(false);
+      else if (key === 'event') setIsUploadingEvent(false);
     };
     reader.readAsDataURL(file);
   };
@@ -572,10 +572,10 @@ export default function AdminPage() {
       setSecondaryInterval(newInterval);
     } else if (key === 'academicAchievement') {
       setAcademicAchievementInterval(newInterval);
-    } else if (key === 'announcement') {
-      setAnnouncementInterval(newInterval);
-    } else if (key === 'schoolNews') {
-      setSchoolNewsInterval(newInterval);
+    } else if (key === 'gallery') {
+      setGalleryInterval(newInterval);
+    } else if (key === 'event') {
+      setEventInterval(newInterval);
     }
   };
 
@@ -1484,8 +1484,8 @@ export default function AdminPage() {
                                 { key: 'nurseryPrimary', label: 'Nursery & Primary' },
                                 { key: 'secondary', label: 'Secondary College' },
                                 { key: 'academicAchievement', label: 'Academic Achievement' },
-                                { key: 'announcement', label: 'Announcement' },
-                                { key: 'schoolNews', label: 'School News' }
+                                { key: 'gallery', label: 'Gallery Showcase' },
+                                { key: 'event', label: 'Event Highlight' }
                               ].map((tab) => (
                                 <button
                                   key={tab.key}
@@ -1543,22 +1543,22 @@ export default function AdminPage() {
                               isUploading = isUploadingAcademicAchievement;
                               newUrl = newAcademicAchievementUrl;
                               setNewUrl = setNewAcademicAchievementUrl;
-                            } else if (carouselSubTab === 'announcement') {
-                              title = "Announcement Carousel";
-                              desc = "Manage slides displaying urgent school announcements, notices, or upcoming schedules.";
-                              images = announcementImages;
-                              interval = announcementInterval;
-                              isUploading = isUploadingAnnouncement;
-                              newUrl = newAnnouncementUrl;
-                              setNewUrl = setNewAnnouncementUrl;
-                            } else if (carouselSubTab === 'schoolNews') {
-                              title = "School News Carousel";
-                              desc = "Manage slides illustrating school events, outings, and recent school news highlights.";
-                              images = schoolNewsImages;
-                              interval = schoolNewsInterval;
-                              isUploading = isUploadingSchoolNews;
-                              newUrl = newSchoolNewsUrl;
-                              setNewUrl = setNewSchoolNewsUrl;
+                            } else if (carouselSubTab === 'gallery') {
+                              title = "Gallery Showcase Carousel";
+                              desc = "Manage the sliding gallery image showcases seen on the school's Gallery page.";
+                              images = galleryImages;
+                              interval = galleryInterval;
+                              isUploading = isUploadingGallery;
+                              newUrl = newGalleryUrl;
+                              setNewUrl = setNewGalleryUrl;
+                            } else if (carouselSubTab === 'event') {
+                              title = "Event Highlights Carousel";
+                              desc = "Manage the featured rotating slides appearing on the Events & Highlights page.";
+                              images = eventImages;
+                              interval = eventInterval;
+                              isUploading = isUploadingEvent;
+                              newUrl = newEventUrl;
+                              setNewUrl = setNewEventUrl;
                             }
 
                             const saveStatus = carouselSaveStatus[carouselSubTab] || 'idle';

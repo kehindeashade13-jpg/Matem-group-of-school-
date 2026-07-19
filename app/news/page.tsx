@@ -21,10 +21,6 @@ export default function NewsPage() {
 
   const [academicAchievementImages, setAcademicAchievementImages] = useState<string[]>([]);
   const [academicAchievementInterval, setAcademicAchievementInterval] = useState(5);
-  const [announcementImages, setAnnouncementImages] = useState<string[]>([]);
-  const [announcementInterval, setAnnouncementInterval] = useState(5);
-  const [schoolNewsImages, setSchoolNewsImages] = useState<string[]>([]);
-  const [schoolNewsInterval, setSchoolNewsInterval] = useState(5);
 
   useEffect(() => {
     const fetchPostsAndCarousels = async () => {
@@ -37,14 +33,6 @@ export default function NewsPage() {
           if (data.carouselAcademicAchievement && data.carouselAcademicAchievement.images?.length > 0) {
             setAcademicAchievementImages(data.carouselAcademicAchievement.images);
             setAcademicAchievementInterval(data.carouselAcademicAchievement.intervalSeconds || 5);
-          }
-          if (data.carouselAnnouncement && data.carouselAnnouncement.images?.length > 0) {
-            setAnnouncementImages(data.carouselAnnouncement.images);
-            setAnnouncementInterval(data.carouselAnnouncement.intervalSeconds || 5);
-          }
-          if (data.carouselSchoolNews && data.carouselSchoolNews.images?.length > 0) {
-            setSchoolNewsImages(data.carouselSchoolNews.images);
-            setSchoolNewsInterval(data.carouselSchoolNews.intervalSeconds || 5);
           }
 
           // Check if there is an id in the URL to open directly
@@ -134,23 +122,6 @@ export default function NewsPage() {
           </div>
 
           {/* Category-Specific Dynamic Carousel Sliders */}
-          {activeCategory === 'School News' && schoolNewsImages.length > 0 && (
-            <div className="space-y-3 animate-fadeIn">
-              <h3 className="text-sm font-bold text-navy-800 font-serif flex items-center">
-                <span className="w-2 h-2 rounded-full bg-gold-500 mr-2 inline-block animate-pulse" />
-                Active School News Highlights
-              </h3>
-              <div className="h-64 sm:h-96 w-full rounded-2xl overflow-hidden shadow-premium">
-                <CampusCarousel
-                  images={schoolNewsImages}
-                  intervalSeconds={schoolNewsInterval}
-                  altText="School News Spotlight"
-                  aspectRatio="h-full w-full"
-                />
-              </div>
-            </div>
-          )}
-
           {activeCategory === 'Academic Achievements' && academicAchievementImages.length > 0 && (
             <div className="space-y-3 animate-fadeIn">
               <h3 className="text-sm font-bold text-navy-800 font-serif flex items-center">
@@ -162,23 +133,6 @@ export default function NewsPage() {
                   images={academicAchievementImages}
                   intervalSeconds={academicAchievementInterval}
                   altText="Academic Spotlight"
-                  aspectRatio="h-full w-full"
-                />
-              </div>
-            </div>
-          )}
-
-          {activeCategory === 'Announcements' && announcementImages.length > 0 && (
-            <div className="space-y-3 animate-fadeIn">
-              <h3 className="text-sm font-bold text-navy-800 font-serif flex items-center">
-                <span className="w-2 h-2 rounded-full bg-gold-500 mr-2 inline-block animate-pulse" />
-                Active Announcements Board
-              </h3>
-              <div className="h-64 sm:h-96 w-full rounded-2xl overflow-hidden shadow-premium">
-                <CampusCarousel
-                  images={announcementImages}
-                  intervalSeconds={announcementInterval}
-                  altText="School Announcement Spotlight"
                   aspectRatio="h-full w-full"
                 />
               </div>

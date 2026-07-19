@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import WhatsAppButton from '@/components/WhatsAppButton';
+import CampusCarousel from '@/components/CampusCarousel';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Image as ImageIcon, Calendar, Clock, MapPin, 
@@ -42,19 +43,33 @@ export default function GalleryPage() {
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [galleryInterval, setGalleryInterval] = useState(5);
+  const [eventImages, setEventImages] = useState<string[]>([]);
+  const [eventInterval, setEventInterval] = useState(5);
+
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchEventsAndCarousels = async () => {
       try {
         const response = await fetch('/api/db');
         if (response.ok) {
           const data = await response.json();
           setEvents(data.events || []);
+          
+          if (data.carouselGallery && data.carouselGallery.images?.length > 0) {
+            setGalleryImages(data.carouselGallery.images);
+            setGalleryInterval(data.carouselGallery.intervalSeconds || 5);
+          }
+          if (data.carouselEvent && data.carouselEvent.images?.length > 0) {
+            setEventImages(data.carouselEvent.images);
+            setEventInterval(data.carouselEvent.intervalSeconds || 5);
+          }
         }
       } catch (error) {
-        console.error('Error fetching gallery events:', error);
+        console.error('Error fetching gallery events and carousels:', error);
       }
     };
-    fetchEvents();
+    fetchEventsAndCarousels();
   }, []);
 
   const categories = ['All', 'Campus', 'Classrooms', 'Sports Day', 'Cultural Day', 'Graduation'];
@@ -98,6 +113,24 @@ export default function GalleryPage() {
               Keep track of parent general meets, termly sports schedules, and multi-cultural days.
             </p>
           </div>
+
+          {/* Dynamic Event Highlight Carousel */}
+          {eventImages.length > 0 && (
+            <div className="max-w-5xl mx-auto space-y-3 animate-fadeIn">
+              <h3 className="text-[10px] font-bold text-navy-800 font-serif flex items-center justify-center uppercase tracking-widest text-gold-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-gold-500 mr-2 inline-block animate-pulse" />
+                Featured Event Highlights
+              </h3>
+              <div className="h-64 sm:h-96 w-full rounded-2xl overflow-hidden shadow-premium border border-gray-100">
+                <CampusCarousel
+                  images={eventImages}
+                  intervalSeconds={eventInterval}
+                  altText="Featured Events Showcase"
+                  aspectRatio="h-full w-full"
+                />
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {events.length > 0 ? (
@@ -182,6 +215,24 @@ export default function GalleryPage() {
             <h2 className="text-3xl font-serif font-bold text-navy-800">Campus Photo Gallery</h2>
             <div className="w-12 h-1 bg-gold-500 mx-auto rounded" />
           </div>
+
+          {/* Dynamic Gallery Showcase Carousel */}
+          {galleryImages.length > 0 && (
+            <div className="max-w-5xl mx-auto mb-12 space-y-3 animate-fadeIn">
+              <h3 className="text-[10px] font-bold text-navy-800 font-serif flex items-center justify-center uppercase tracking-widest text-gold-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-gold-500 mr-2 inline-block animate-pulse" />
+                Featured Gallery Showcase
+              </h3>
+              <div className="h-64 sm:h-96 w-full rounded-2xl overflow-hidden shadow-premium border border-gray-100">
+                <CampusCarousel
+                  images={galleryImages}
+                  intervalSeconds={galleryInterval}
+                  altText="Featured Gallery Showcase"
+                  aspectRatio="h-full w-full"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Categories Swiper/Filter Bar */}
           <div className="flex flex-wrap items-center justify-center gap-2 mb-10">

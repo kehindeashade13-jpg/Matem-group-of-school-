@@ -67,8 +67,8 @@ export async function GET() {
         carouselNurseryPrimary: db.carouselNurseryPrimary,
         carouselSecondary: db.carouselSecondary,
         carouselAcademicAchievement: db.carouselAcademicAchievement,
-        carouselAnnouncement: db.carouselAnnouncement,
-        carouselSchoolNews: db.carouselSchoolNews
+        carouselGallery: db.carouselGallery,
+        carouselEvent: db.carouselEvent
       });
     } catch (err) {
       console.error("Supabase API error in GET /api/db:", err);
@@ -386,10 +386,10 @@ export async function POST(req: NextRequest) {
           db.carouselSecondary = carouselData;
         } else if (key === 'academicAchievement') {
           db.carouselAcademicAchievement = carouselData;
-        } else if (key === 'announcement') {
-          db.carouselAnnouncement = carouselData;
-        } else if (key === 'schoolNews') {
-          db.carouselSchoolNews = carouselData;
+        } else if (key === 'gallery') {
+          db.carouselGallery = carouselData;
+        } else if (key === 'event') {
+          db.carouselEvent = carouselData;
         } else {
           db.carousel = carouselData;
         }
