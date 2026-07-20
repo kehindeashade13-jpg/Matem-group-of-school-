@@ -284,7 +284,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             <div className="lg:col-span-5 relative h-[450px] rounded-2xl overflow-hidden shadow-premium border-4 border-white">
               <Image
-                src="/images/founder_portrait.jpg"
+                src="https://github.com/user-attachments/assets/498b1916-66ae-404f-aa4d-3532fb1172ee"
                 alt="Proprietor Mr Ekunwe Martin Nosakhare"
                 fill
                 className="object-cover"

@@ -13,7 +13,7 @@ const TEAM = [
     name: "Mr Ekunwe Martin Nosakhare",
     role: "Founder & Proprietor",
     bio: "With over 30 years in academic administration, Mr Ekunwe Martin Nosakhare founded Matem Schools with the singular vision of blending classic morals with modern technological competence.",
-    img: "/images/founder_portrait.jpg"
+    img: "https://github.com/user-attachments/assets/498b1916-66ae-404f-aa4d-3532fb1172ee"
   },
   {
     name: "Mrs. Olatunbosun Oluwayemisi",
@@ -25,7 +25,7 @@ const TEAM = [
     name: "Mrs. Gbemisola Komolafe",
     role: "Head Teacher, Matem Private School",
     bio: "A specialist in early childhood education. Mrs. Komolafe coordinates our nursery and primary curriculums, integrating critical thinking, moral development, and innovative learning methods.",
-    img: "https://picsum.photos/seed/headmistress/400/400"
+    img: "https://github.com/user-attachments/assets/fda4ff07-9213-4435-bdd7-1fe6057d3d94"
   }
 ];
 
