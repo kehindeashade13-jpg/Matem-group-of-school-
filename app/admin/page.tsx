@@ -1,18 +1,21 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import { 
-  Lock, LayoutDashboard, Newspaper, Calendar, 
-  MessageSquare, Plus, Trash2, Edit2, Eye, CheckCircle, 
-  X, RefreshCw, Loader2, Sparkles, UserCheck, AlertCircle,
-  Search, Filter, ExternalLink, Database, AlertTriangle, FileText, MapPin, Clock, Info, Images
-} from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { motion, AnimatePresence } from 'motion/react';
-import { supabase } from '@/lib/supabase';
+import {
+  Lock, LayoutDashboard, Newspaper, Calendar,
+  MessageSquare, Plus, Trash2, Edit2, Eye, CheckCircle,
+  X, RefreshCw, Loader2, Sparkles, UserCheck, AlertCircle,
+  Search, Filter, ExternalLink, LogOut, Mail, Phone, MapPin, Clock, BookOpen
+} from 'lucide-react';
 
-// TypeScript Interfaces matching the Supabase Schema
+// Inline Supabase Initialization
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// TypeScript Interfaces matching the requested Database Schema
 interface Inquiry {
   id: string;
   name: string;
@@ -22,7 +25,6 @@ interface Inquiry {
   purpose: 'admission' | 'general' | 'complaint' | 'other';
   message: string;
   status: 'pending' | 'contacted' | 'resolved';
-  date: string;
   created_at?: string;
 }
 
@@ -42,2156 +44,1272 @@ interface EventItem {
   id: string;
   title: string;
   description: string;
-  date: string;
+  date: string; // YYYY-MM-DD
   time: string;
   location: string;
   category: 'academic' | 'sports' | 'cultural' | 'other';
   created_at?: string;
 }
 
-// Initial/Mock Fallbacks for when Supabase is not yet configured
-const MOCK_INQUIRIES: Inquiry[] = [
-  {
-    id: "inq-1",
-    name: "John Doe",
-    email: "johndoe@example.com",
-    phone: "+234 803 123 4567",
-    arm: "private-school",
-    purpose: "admission",
-    message: "I would like to inquire about the admissions process for the upcoming school session for my daughter entering Grade 4.",
-    status: "pending",
-    date: "2026-07-15"
-  },
-  {
-    id: "inq-2",
-    name: "Chinedu Okafor",
-    email: "chinedu@example.com",
-    phone: "+234 812 345 6789",
-    arm: "college",
-    purpose: "general",
-    message: "Does Matem College offer boarding facilities for senior secondary students? What are the requirements?",
-    status: "contacted",
-    date: "2026-07-14"
-  }
-];
-
-const MOCK_POSTS: Post[] = [
-  {
-    id: "post-1",
-    title: "Matem College Emerges Victorious in National Science Bowl",
-    category: "Academic Achievements",
-    excerpt: "We are extremely proud to announce our team's outstanding victory at the National Inter-School Science Olympiad.",
-    content: "Our senior science students showcased exceptional knowledge and critical thinking, securing first place in physics and mathematics categories. Congratulations to our hard-working scholars and their devoted instructors!",
-    date: "2026-07-10",
-    image: "https://picsum.photos/seed/science/800/600",
-    author: "Principal's Office"
-  },
-  {
-    id: "post-2",
-    title: "Re-Opening Schedule & Guidelines for Autumn Term",
-    category: "Announcements",
-    excerpt: "All necessary details regarding resuming, boarding check-in, and administrative clearances are outlined here.",
-    content: "We look forward to welcoming students back to both the private school and college campuses. Please verify that all tuition payments are settled and healthcare clearance forms are uploaded prior to the resume date.",
-    date: "2026-07-08",
-    image: "https://picsum.photos/seed/school/800/600",
-    author: "Admissions Board"
-  }
-];
-
-const MOCK_EVENTS: EventItem[] = [
-  {
-    id: "event-1",
-    title: "Autumn Term Resumption & Orientation Day",
-    description: "Welcome assembly, syllabus distributions, and school rules briefing for all new and returning students.",
-    date: "2026-09-07",
-    time: "08:00 AM - 02:00 PM",
-    location: "Main Auditorium, Matem College",
-    category: "academic"
-  },
-  {
-    id: "event-2",
-    title: "Inter-House Sports Festival 2026",
-    description: "Our highly anticipated annual sports track and field tournament. Parents are cordially invited to cheer our students.",
-    date: "2026-10-24",
-    time: "09:00 AM - 04:30 PM",
-    location: "Matem Sports Complex & Field",
-    category: "sports"
-  }
-];
-
 export default function AdminPage() {
-  const [passcode, setPasscode] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authError, setAuthError] = useState("");
+  // Authentication states
+  const [session, setSession] = useState<any>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'inquiries' | 'posts' | 'events' | 'carousel'>('inquiries');
+  // App state
+  const [activeTab, setActiveTab] = useState<'inquiries' | 'posts' | 'events'>('inquiries');
+  const [loading, setLoading] = useState(false);
+  const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // Data states
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  // Carousel settings states
-  const [carouselImages, setCarouselImages] = useState<string[]>([]);
-  const [carouselInterval, setCarouselInterval] = useState<number>(5);
-  const [newCarouselUrl, setNewCarouselUrl] = useState("");
-  const [isUploadingCarousel, setIsUploadingCarousel] = useState(false);
-  const [carouselSaving, setCarouselSaving] = useState(false);
-
-  // New Carousels
-  const [carouselSubTab, setCarouselSubTab] = useState<'homepage' | 'nurseryPrimary' | 'secondary' | 'academicAchievement' | 'gallery' | 'event'>('homepage');
-  
-  const [nurseryPrimaryImages, setNurseryPrimaryImages] = useState<string[]>([]);
-  const [nurseryPrimaryInterval, setNurseryPrimaryInterval] = useState<number>(5);
-  const [newNurseryPrimaryUrl, setNewNurseryPrimaryUrl] = useState("");
-  const [isUploadingNurseryPrimary, setIsUploadingNurseryPrimary] = useState(false);
-
-  const [secondaryImages, setSecondaryImages] = useState<string[]>([]);
-  const [secondaryInterval, setSecondaryInterval] = useState<number>(5);
-  const [newSecondaryUrl, setNewSecondaryUrl] = useState("");
-  const [isUploadingSecondary, setIsUploadingSecondary] = useState(false);
-
-  const [academicAchievementImages, setAcademicAchievementImages] = useState<string[]>([]);
-  const [academicAchievementInterval, setAcademicAchievementInterval] = useState<number>(5);
-  const [newAcademicAchievementUrl, setNewAcademicAchievementUrl] = useState("");
-  const [isUploadingAcademicAchievement, setIsUploadingAcademicAchievement] = useState(false);
-
-  const [galleryImages, setGalleryImages] = useState<string[]>([]);
-  const [galleryInterval, setGalleryInterval] = useState<number>(5);
-  const [newGalleryUrl, setNewGalleryUrl] = useState("");
-  const [isUploadingGallery, setIsUploadingGallery] = useState(false);
-
-  const [eventImages, setEventImages] = useState<string[]>([]);
-  const [eventInterval, setEventInterval] = useState<number>(5);
-  const [newEventUrl, setNewEventUrl] = useState("");
-  const [isUploadingEvent, setIsUploadingEvent] = useState(false);
-
-  const [carouselSavingKey, setCarouselSavingKey] = useState<string | null>(null);
-  const [carouselSaveStatus, setCarouselSaveStatus] = useState<{[key: string]: 'idle' | 'saving' | 'success' | 'error'}>({});
-
-  // Connection info
-  const [isSupabaseConfigured, setIsSupabaseConfigured] = useState(false);
-  const [connectionMessage, setConnectionMessage] = useState("");
 
   // Search & Filter state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'contacted' | 'resolved'>('all');
+  const [categoryPostFilter, setCategoryPostFilter] = useState<'all' | 'School News' | 'Academic Achievements' | 'Announcements' | 'Notices'>('all');
+  const [categoryEventFilter, setCategoryEventFilter] = useState<'all' | 'academic' | 'sports' | 'cultural' | 'other'>('all');
 
-  // Modals state
-  const [showInquiryModal, setShowInquiryModal] = useState(false);
-  const [showPostModal, setShowPostModal] = useState(false);
-  const [showEventModal, setShowEventModal] = useState(false);
+  // Modals & form state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<'create_post' | 'edit_post' | 'create_event' | 'edit_event' | 'view_inquiry'>('create_post');
+  const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
+  const [submitLoading, setSubmitLoading] = useState(false);
 
-  // Edit item tracking
-  const [editingInquiry, setEditingInquiry] = useState<Inquiry | null>(null);
-  const [editingPost, setEditingPost] = useState<Post | null>(null);
-  const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
+  // Post form fields
+  const [postTitle, setPostTitle] = useState('');
+  const [postCategory, setPostCategory] = useState<'School News' | 'Academic Achievements' | 'Announcements' | 'Notices'>('School News');
+  const [postExcerpt, setPostExcerpt] = useState('');
+  const [postContent, setPostContent] = useState('');
+  const [postDate, setPostDate] = useState('');
+  const [postImage, setPostImage] = useState('');
+  const [postAuthor, setPostAuthor] = useState('');
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
-  // Forms state
-  const [inquiryForm, setInquiryForm] = useState<Omit<Inquiry, 'id' | 'created_at'>>({
-    name: '',
-    email: '',
-    phone: '',
-    arm: 'private-school',
-    purpose: 'admission',
-    message: '',
-    status: 'pending',
-    date: new Date().toISOString().split('T')[0]
-  });
+  // Event form fields
+  const [eventTitle, setEventTitle] = useState('');
+  const [eventDescription, setEventDescription] = useState('');
+  const [eventDate, setEventDate] = useState('');
+  const [eventTime, setEventTime] = useState('');
+  const [eventLocation, setEventLocation] = useState('');
+  const [eventCategory, setEventCategory] = useState<'academic' | 'sports' | 'cultural' | 'other'>('academic');
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const [postForm, setPostForm] = useState<Omit<Post, 'id' | 'created_at'>>({
-    title: '',
-    category: 'School News',
-    excerpt: '',
-    content: '',
-    date: new Date().toISOString().split('T')[0],
-    image: 'https://picsum.photos/seed/matem/800/600',
-    author: 'Principal\'s Desk'
-  });
-
-  const [isUploadingPostImage, setIsUploadingPostImage] = useState(false);
-
-  const [eventForm, setEventForm] = useState<Omit<EventItem, 'id' | 'created_at'>>({
-    title: '',
-    description: '',
-    date: new Date().toISOString().split('T')[0],
-    time: '08:00 AM',
-    location: '',
-    category: 'academic'
-  });
-
-  const [formSubmitting, setFormSubmitting] = useState(false);
-
-  // Determine if credentials are real or placeholder
+  // Monitor auth status
   useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    const timer = setTimeout(() => {
-      if (url && key && !url.includes("placeholder-project") && !key.includes("placeholder-anon")) {
-        setIsSupabaseConfigured(true);
-        setConnectionMessage("Connected to Live Supabase Database");
-      } else {
-        setIsSupabaseConfigured(false);
-        setConnectionMessage("Demo Sandbox Mode (Fallback Local Data Active)");
-      }
-    }, 0);
-    return () => clearTimeout(timer);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setCheckingSession(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  // Sync data from database or load mock fallbacks
-  const fetchAllData = async () => {
-    setLoading(true);
+  // Fetch data when session changes or tab changes or trigger fires
+  useEffect(() => {
+    if (!session) return;
+    let isMounted = true;
 
-    // Fetch carousel settings from API in all modes
-    try {
-      const carouselRes = await fetch('/api/db');
-      if (carouselRes.ok) {
-        const carouselData = await carouselRes.json();
-        if (carouselData.carousel) {
-          setCarouselImages(carouselData.carousel.images || []);
-          setCarouselInterval(carouselData.carousel.intervalSeconds || 5);
+    const loadData = async () => {
+      setLoading(true);
+      setFeedbackMsg(null);
+      try {
+        if (activeTab === 'inquiries') {
+          const { data, error } = await supabase
+            .from('inquiries')
+            .select('*')
+            .order('created_at', { ascending: false });
+          if (error) throw error;
+          if (isMounted) setInquiries(data || []);
+        } else if (activeTab === 'posts') {
+          const { data, error } = await supabase
+            .from('posts')
+            .select('*')
+            .order('date', { ascending: false });
+          if (error) throw error;
+          if (isMounted) setPosts(data || []);
+        } else if (activeTab === 'events') {
+          const { data, error } = await supabase
+            .from('events')
+            .select('*')
+            .order('date', { ascending: false });
+          if (error) throw error;
+          if (isMounted) setEvents(data || []);
         }
-        if (carouselData.carouselNurseryPrimary) {
-          setNurseryPrimaryImages(carouselData.carouselNurseryPrimary.images || []);
-          setNurseryPrimaryInterval(carouselData.carouselNurseryPrimary.intervalSeconds || 5);
+      } catch (err: any) {
+        console.error('Error fetching data:', err);
+        if (isMounted) {
+          setFeedbackMsg({ type: 'error', text: err.message || 'Failed to sync data with Supabase.' });
         }
-        if (carouselData.carouselSecondary) {
-          setSecondaryImages(carouselData.carouselSecondary.images || []);
-          setSecondaryInterval(carouselData.carouselSecondary.intervalSeconds || 5);
-        }
-        if (carouselData.carouselAcademicAchievement) {
-          setAcademicAchievementImages(carouselData.carouselAcademicAchievement.images || []);
-          setAcademicAchievementInterval(carouselData.carouselAcademicAchievement.intervalSeconds || 5);
-        }
-        if (carouselData.carouselGallery) {
-          setGalleryImages(carouselData.carouselGallery.images || []);
-          setGalleryInterval(carouselData.carouselGallery.intervalSeconds || 5);
-        }
-        if (carouselData.carouselEvent) {
-          setEventImages(carouselData.carouselEvent.images || []);
-          setEventInterval(carouselData.carouselEvent.intervalSeconds || 5);
-        }
+      } finally {
+        if (isMounted) setLoading(false);
       }
-    } catch (err) {
-      console.error("Error fetching carousel from API:", err);
-    }
+    };
 
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const isMock = !url || url.includes("placeholder-project");
+    loadData();
 
-    if (isMock) {
-      // Simulate local database latency
-      setTimeout(() => {
-        // Read from local storage if saved there, otherwise set mock fallbacks
-        const localInquiries = localStorage.getItem('matem_inquiries');
-        const localPosts = localStorage.getItem('matem_posts');
-        const localEvents = localStorage.getItem('matem_events');
+    return () => {
+      isMounted = false;
+    };
+  }, [session, activeTab, refreshTrigger]);
 
-        if (localInquiries) setInquiries(JSON.parse(localInquiries));
-        else {
-          setInquiries(MOCK_INQUIRIES);
-          localStorage.setItem('matem_inquiries', JSON.stringify(MOCK_INQUIRIES));
-        }
-
-        if (localPosts) setPosts(JSON.parse(localPosts));
-        else {
-          setPosts(MOCK_POSTS);
-          localStorage.setItem('matem_posts', JSON.stringify(MOCK_POSTS));
-        }
-
-        if (localEvents) setEvents(JSON.parse(localEvents));
-        else {
-          setEvents(MOCK_EVENTS);
-          localStorage.setItem('matem_events', JSON.stringify(MOCK_EVENTS));
-        }
-
-        setLoading(false);
-      }, 500);
+  // Login handler
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setAuthError('Please fill in all email and password fields.');
       return;
     }
-
+    setAuthLoading(true);
+    setAuthError('');
     try {
-      // 1. Fetch inquiries
-      const { data: inqData, error: inqError } = await supabase
-        .from('inquiries')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (inqError) console.error("Error fetching inquiries:", inqError);
-      else if (inqData) {
-        const sanitizedInquiries: Inquiry[] = inqData.map((item: any) => ({
-          id: String(item.id || ''),
-          name: String(item.name || ''),
-          email: String(item.email || ''),
-          phone: String(item.phone || ''),
-          arm: item.arm || 'private-school',
-          purpose: item.purpose || 'admission',
-          message: String(item.message || ''),
-          status: item.status || 'pending',
-          date: String(item.date || ''),
-          created_at: item.created_at ? String(item.created_at) : undefined
-        }));
-        setInquiries(sanitizedInquiries);
-      }
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      setSession(data.session);
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setAuthError(err.message || 'Invalid email or password. Please try again.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
-      // 2. Fetch posts
-      const { data: postData, error: postError } = await supabase
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (postError) console.error("Error fetching posts:", postError);
-      else if (postData) {
-        const sanitizedPosts: Post[] = postData.map((item: any) => ({
-          id: String(item.id || ''),
-          title: String(item.title || ''),
-          category: item.category || 'School News',
-          excerpt: String(item.excerpt || ''),
-          content: String(item.content || ''),
-          date: String(item.date || ''),
-          image: String(item.image || ''),
-          author: String(item.author || ''),
-          created_at: item.created_at ? String(item.created_at) : undefined
-        }));
-        setPosts(sanitizedPosts);
-      }
-
-      // 3. Fetch events
-      const { data: evData, error: evError } = await supabase
-        .from('events')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (evError) console.error("Error fetching events:", evError);
-      else if (evData) {
-        const sanitizedEvents: EventItem[] = evData.map((item: any) => ({
-          id: String(item.id || ''),
-          title: String(item.title || ''),
-          description: String(item.description || ''),
-          date: String(item.date || ''),
-          time: String(item.time || ''),
-          location: String(item.location || ''),
-          category: item.category || 'academic',
-          created_at: item.created_at ? String(item.created_at) : undefined
-        }));
-        setEvents(sanitizedEvents);
-      }
-
+  // Sign out handler
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setSession(null);
     } catch (err) {
-      console.error("General connection error:", err);
+      console.error('Logout error:', err);
+    }
+  };
+
+  // Clear modal fields helper
+  const resetFormFields = () => {
+    setPostTitle('');
+    setPostCategory('School News');
+    setPostExcerpt('');
+    setPostContent('');
+    setPostDate(new Date().toISOString().split('T')[0]);
+    setPostImage('');
+    setPostAuthor('Admin');
+    setSelectedPostId(null);
+
+    setEventTitle('');
+    setEventDescription('');
+    setEventDate(new Date().toISOString().split('T')[0]);
+    setEventTime('');
+    setEventLocation('');
+    setEventCategory('academic');
+    setSelectedEventId(null);
+
+    setSelectedInquiry(null);
+  };
+
+  // Open creation modal
+  const openCreateModal = () => {
+    resetFormFields();
+    if (activeTab === 'posts') {
+      setModalType('create_post');
+    } else if (activeTab === 'events') {
+      setModalType('create_event');
+    }
+    setIsModalOpen(true);
+  };
+
+  // Open edit modal
+  const openEditModal = (item: any) => {
+    resetFormFields();
+    if (activeTab === 'posts') {
+      const p = item as Post;
+      setSelectedPostId(p.id);
+      setPostTitle(p.title || '');
+      setPostCategory(p.category || 'School News');
+      setPostExcerpt(p.excerpt || '');
+      setPostContent(p.content || '');
+      setPostDate(p.date || '');
+      setPostImage(p.image || '');
+      setPostAuthor(p.author || '');
+      setModalType('edit_post');
+    } else if (activeTab === 'events') {
+      const ev = item as EventItem;
+      setSelectedEventId(ev.id);
+      setEventTitle(ev.title || '');
+      setEventDescription(ev.description || '');
+      setEventDate(ev.date || '');
+      setEventTime(ev.time || '');
+      setEventLocation(ev.location || '');
+      setEventCategory(ev.category || 'academic');
+      setModalType('edit_event');
+    }
+    setIsModalOpen(true);
+  };
+
+  // Open Inquiry View modal
+  const openViewInquiry = (inq: Inquiry) => {
+    setSelectedInquiry(inq);
+    setModalType('view_inquiry');
+    setIsModalOpen(true);
+  };
+
+  // Submit Post handler
+  const handlePostSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!postTitle || !postContent) {
+      setFeedbackMsg({ type: 'error', text: 'Post Title and Content are required.' });
+      return;
+    }
+    setSubmitLoading(true);
+    try {
+      const payload = {
+        title: postTitle,
+        category: postCategory,
+        excerpt: postExcerpt,
+        content: postContent,
+        date: postDate || new Date().toISOString().split('T')[0],
+        image: postImage || 'https://picsum.photos/seed/school/800/600',
+        author: postAuthor || 'Admin'
+      };
+
+      if (modalType === 'create_post') {
+        const { error } = await supabase.from('posts').insert([payload]);
+        if (error) throw error;
+        setFeedbackMsg({ type: 'success', text: 'Blog Post created successfully!' });
+      } else {
+        const { error } = await supabase.from('posts').update(payload).eq('id', selectedPostId);
+        if (error) throw error;
+        setFeedbackMsg({ type: 'success', text: 'Blog Post updated successfully!' });
+      }
+      setIsModalOpen(false);
+      setRefreshTrigger(prev => prev + 1);
+    } catch (err: any) {
+      console.error('Error saving post:', err);
+      setFeedbackMsg({ type: 'error', text: err.message || 'Failed to save Blog Post.' });
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  // Submit Event handler
+  const handleEventSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!eventTitle || !eventDate) {
+      setFeedbackMsg({ type: 'error', text: 'Event Title and Date are required.' });
+      return;
+    }
+    setSubmitLoading(true);
+    try {
+      const payload = {
+        title: eventTitle,
+        description: eventDescription,
+        date: eventDate,
+        time: eventTime,
+        location: eventLocation,
+        category: eventCategory
+      };
+
+      if (modalType === 'create_event') {
+        const { error } = await supabase.from('events').insert([payload]);
+        if (error) throw error;
+        setFeedbackMsg({ type: 'success', text: 'Event created successfully!' });
+      } else {
+        const { error } = await supabase.from('events').update(payload).eq('id', selectedEventId);
+        if (error) throw error;
+        setFeedbackMsg({ type: 'success', text: 'Event updated successfully!' });
+      }
+      setIsModalOpen(false);
+      setRefreshTrigger(prev => prev + 1);
+    } catch (err: any) {
+      console.error('Error saving event:', err);
+      setFeedbackMsg({ type: 'error', text: err.message || 'Failed to save Event.' });
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  // Delete Handler
+  const handleDelete = async (id: string, table: 'posts' | 'events') => {
+    if (!window.confirm(`Are you absolutely sure you want to delete this ${table === 'posts' ? 'Blog Post' : 'Event'}? This action is permanent.`)) {
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.from(table).delete().eq('id', id);
+      if (error) throw error;
+      setFeedbackMsg({ type: 'success', text: `${table === 'posts' ? 'Blog Post' : 'Event'} deleted successfully.` });
+      setRefreshTrigger(prev => prev + 1);
+    } catch (err: any) {
+      console.error(`Error deleting from ${table}:`, err);
+      setFeedbackMsg({ type: 'error', text: err.message || `Failed to delete record.` });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      const timer = setTimeout(() => {
-        fetchAllData();
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-  }, [isAuthenticated]);
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passcode.trim() === "admin123") {
-      setIsAuthenticated(true);
-      setAuthError("");
-    } else {
-      setAuthError("Incorrect staff passcode. Use 'admin123' to unlock.");
-    }
-  };
-
-  // ==========================================
-  // CAROUSEL SETTINGS ACTIONS
-  // ==========================================
-  const saveCarouselSettings = async (key: string, updatedImages: string[], updatedInterval: number) => {
-    setCarouselSavingKey(key);
-    setCarouselSaveStatus(prev => ({ ...prev, [key]: 'saving' }));
-    try {
-      const response = await fetch('/api/db', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'update_carousel',
-          payload: {
-            key,
-            images: updatedImages,
-            intervalSeconds: updatedInterval
-          }
-        })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const updatedDb = data.db;
-        if (updatedDb) {
-          if (key === 'homepage') {
-            setCarouselImages(updatedDb.carousel?.images || []);
-            setCarouselInterval(updatedDb.carousel?.intervalSeconds || 5);
-          } else if (key === 'nurseryPrimary') {
-            setNurseryPrimaryImages(updatedDb.carouselNurseryPrimary?.images || []);
-            setNurseryPrimaryInterval(updatedDb.carouselNurseryPrimary?.intervalSeconds || 5);
-          } else if (key === 'secondary') {
-            setSecondaryImages(updatedDb.carouselSecondary?.images || []);
-            setSecondaryInterval(updatedDb.carouselSecondary?.intervalSeconds || 5);
-          } else if (key === 'academicAchievement') {
-            setAcademicAchievementImages(updatedDb.carouselAcademicAchievement?.images || []);
-            setAcademicAchievementInterval(updatedDb.carouselAcademicAchievement?.intervalSeconds || 5);
-          } else if (key === 'gallery') {
-            setGalleryImages(updatedDb.carouselGallery?.images || []);
-            setGalleryInterval(updatedDb.carouselGallery?.intervalSeconds || 5);
-          } else if (key === 'event') {
-            setEventImages(updatedDb.carouselEvent?.images || []);
-            setEventInterval(updatedDb.carouselEvent?.intervalSeconds || 5);
-          }
-        }
-        setCarouselSaveStatus(prev => ({ ...prev, [key]: 'success' }));
-        setTimeout(() => {
-          setCarouselSaveStatus(prev => ({ ...prev, [key]: 'idle' }));
-        }, 3000);
-      } else {
-        console.error("Failed to save carousel settings");
-        setCarouselSaveStatus(prev => ({ ...prev, [key]: 'error' }));
-      }
-    } catch (error) {
-      console.error("Error saving carousel settings:", error);
-      setCarouselSaveStatus(prev => ({ ...prev, [key]: 'error' }));
-    } finally {
-      setCarouselSavingKey(null);
-    }
-  };
-
-  const handleAddUrl = (key: string, url: string) => {
-    const trimmed = url.trim();
-    if (!trimmed) return;
-    if (key === 'homepage') {
-      setCarouselImages(prev => [...prev, trimmed]);
-      setNewCarouselUrl("");
-    } else if (key === 'nurseryPrimary') {
-      setNurseryPrimaryImages(prev => [...prev, trimmed]);
-      setNewNurseryPrimaryUrl("");
-    } else if (key === 'secondary') {
-      setSecondaryImages(prev => [...prev, trimmed]);
-      setNewSecondaryUrl("");
-    } else if (key === 'academicAchievement') {
-      setAcademicAchievementImages(prev => [...prev, trimmed]);
-      setNewAcademicAchievementUrl("");
-    } else if (key === 'gallery') {
-      setGalleryImages(prev => [...prev, trimmed]);
-      setNewGalleryUrl("");
-    } else if (key === 'event') {
-      setEventImages(prev => [...prev, trimmed]);
-      setNewEventUrl("");
-    }
-  };
-
-  const handleRemoveImage = (key: string, indexToRemove: number) => {
-    if (key === 'homepage') {
-      setCarouselImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
-    } else if (key === 'nurseryPrimary') {
-      setNurseryPrimaryImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
-    } else if (key === 'secondary') {
-      setSecondaryImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
-    } else if (key === 'academicAchievement') {
-      setAcademicAchievementImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
-    } else if (key === 'gallery') {
-      setGalleryImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
-    } else if (key === 'event') {
-      setEventImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
-    }
-  };
-
-  const handleFileUpload = (key: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (key === 'homepage') setIsUploadingCarousel(true);
-    else if (key === 'nurseryPrimary') setIsUploadingNurseryPrimary(true);
-    else if (key === 'secondary') setIsUploadingSecondary(true);
-    else if (key === 'academicAchievement') setIsUploadingAcademicAchievement(true);
-    else if (key === 'gallery') setIsUploadingGallery(true);
-    else if (key === 'event') setIsUploadingEvent(true);
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      if (base64String) {
-        if (key === 'homepage') {
-          setCarouselImages(prev => [...prev, base64String]);
-        } else if (key === 'nurseryPrimary') {
-          setNurseryPrimaryImages(prev => [...prev, base64String]);
-        } else if (key === 'secondary') {
-          setSecondaryImages(prev => [...prev, base64String]);
-        } else if (key === 'academicAchievement') {
-          setAcademicAchievementImages(prev => [...prev, base64String]);
-        } else if (key === 'gallery') {
-          setGalleryImages(prev => [...prev, base64String]);
-        } else if (key === 'event') {
-          setEventImages(prev => [...prev, base64String]);
-        }
-      }
-      if (key === 'homepage') setIsUploadingCarousel(false);
-      else if (key === 'nurseryPrimary') setIsUploadingNurseryPrimary(false);
-      else if (key === 'secondary') setIsUploadingSecondary(false);
-      else if (key === 'academicAchievement') setIsUploadingAcademicAchievement(false);
-      else if (key === 'gallery') setIsUploadingGallery(false);
-      else if (key === 'event') setIsUploadingEvent(false);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handlePostImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Limit size to 5MB for base64 storage safety
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Image is too large. Please select an image under 5MB.");
-      return;
-    }
-
-    setIsUploadingPostImage(true);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      if (base64String) {
-        setPostForm(prev => ({ ...prev, image: base64String }));
-      }
-      setIsUploadingPostImage(false);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleIntervalChange = (key: string, newInterval: number) => {
-    if (key === 'homepage') {
-      setCarouselInterval(newInterval);
-    } else if (key === 'nurseryPrimary') {
-      setNurseryPrimaryInterval(newInterval);
-    } else if (key === 'secondary') {
-      setSecondaryInterval(newInterval);
-    } else if (key === 'academicAchievement') {
-      setAcademicAchievementInterval(newInterval);
-    } else if (key === 'gallery') {
-      setGalleryInterval(newInterval);
-    } else if (key === 'event') {
-      setEventInterval(newInterval);
-    }
-  };
-
-  // ==========================================
-  // INQUIRIES CRUD OPERATIONS
-  // ==========================================
-  const handleOpenInquiryModal = (inq: Inquiry | null = null) => {
-    if (inq) {
-      setEditingInquiry(inq);
-      setInquiryForm({
-        name: inq.name,
-        email: inq.email,
-        phone: inq.phone,
-        arm: inq.arm,
-        purpose: inq.purpose,
-        message: inq.message,
-        status: inq.status,
-        date: inq.date
-      });
-    } else {
-      setEditingInquiry(null);
-      setInquiryForm({
-        name: '',
-        email: '',
-        phone: '',
-        arm: 'private-school',
-        purpose: 'admission',
-        message: '',
-        status: 'pending',
-        date: new Date().toISOString().split('T')[0]
-      });
-    }
-    setShowInquiryModal(true);
-  };
-
-  const handleInquirySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormSubmitting(true);
-
-    if (!isSupabaseConfigured) {
-      // Mock update local storage
-      let updatedInquiries = [...inquiries];
-      if (editingInquiry) {
-        updatedInquiries = inquiries.map(i => i.id === editingInquiry.id ? { ...i, ...inquiryForm } : i);
-      } else {
-        const newRecord: Inquiry = {
-          id: `inq-${Date.now()}`,
-          ...inquiryForm
-        };
-        updatedInquiries.unshift(newRecord);
-      }
-      setInquiries(updatedInquiries);
-      localStorage.setItem('matem_inquiries', JSON.stringify(updatedInquiries));
-      setShowInquiryModal(false);
-      setFormSubmitting(false);
-      return;
-    }
-
-    try {
-      if (editingInquiry) {
-        const { error } = await supabase
-          .from('inquiries')
-          .update(inquiryForm)
-          .eq('id', editingInquiry.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('inquiries')
-          .insert([inquiryForm]);
-        if (error) throw error;
-      }
-      await fetchAllData();
-      setShowInquiryModal(false);
-    } catch (err: any) {
-      alert(`Supabase Error: ${err.message || 'Unable to save record'}`);
-    } finally {
-      setFormSubmitting(false);
-    }
-  };
-
-  const handleQuickInquiryStatusChange = async (id: string, newStatus: Inquiry['status']) => {
-    if (!isSupabaseConfigured) {
-      const updatedInquiries = inquiries.map(i => i.id === id ? { ...i, status: newStatus } : i);
-      setInquiries(updatedInquiries);
-      localStorage.setItem('matem_inquiries', JSON.stringify(updatedInquiries));
-      return;
-    }
-
+  // Inquiries status update dropdown handler
+  const handleInquiryStatusChange = async (id: string, newStatus: 'pending' | 'contacted' | 'resolved') => {
     try {
       const { error } = await supabase
         .from('inquiries')
         .update({ status: newStatus })
         .eq('id', id);
       if (error) throw error;
-      await fetchAllData();
-    } catch (err: any) {
-      alert(`Failed to update status: ${err.message}`);
-    }
-  };
-
-  const handleDeleteInquiry = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this parent inquiry record?")) return;
-
-    if (!isSupabaseConfigured) {
-      const updatedInquiries = inquiries.filter(i => i.id !== id);
-      setInquiries(updatedInquiries);
-      localStorage.setItem('matem_inquiries', JSON.stringify(updatedInquiries));
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('inquiries')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-      await fetchAllData();
-    } catch (err: any) {
-      alert(`Delete error: ${err.message}`);
-    }
-  };
-
-
-  // ==========================================
-  // BLOG POSTS CRUD OPERATIONS
-  // ==========================================
-  const handleOpenPostModal = (post: Post | null = null) => {
-    if (post) {
-      setEditingPost(post);
-      setPostForm({
-        title: post.title,
-        category: post.category,
-        excerpt: post.excerpt,
-        content: post.content,
-        date: post.date,
-        image: post.image,
-        author: post.author
-      });
-    } else {
-      setEditingPost(null);
-      setPostForm({
-        title: '',
-        category: 'School News',
-        excerpt: '',
-        content: '',
-        date: new Date().toISOString().split('T')[0],
-        image: 'https://picsum.photos/seed/matem/800/600',
-        author: 'Principal\'s Desk'
-      });
-    }
-    setShowPostModal(true);
-  };
-
-  const handlePostSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormSubmitting(true);
-
-    if (!isSupabaseConfigured) {
-      let updatedPosts = [...posts];
-      if (editingPost) {
-        updatedPosts = posts.map(p => p.id === editingPost.id ? { ...p, ...postForm } : p);
-      } else {
-        const newRecord: Post = {
-          id: `post-${Date.now()}`,
-          ...postForm
-        };
-        updatedPosts.unshift(newRecord);
+      
+      // Update local state smoothly
+      setInquiries(prev => prev.map(inq => inq.id === id ? { ...inq, status: newStatus } : inq));
+      
+      // Also update currently viewed modal inquiry if matches
+      if (selectedInquiry && selectedInquiry.id === id) {
+        setSelectedInquiry(prev => prev ? { ...prev, status: newStatus } : null);
       }
-      setPosts(updatedPosts);
-      localStorage.setItem('matem_posts', JSON.stringify(updatedPosts));
-      setShowPostModal(false);
-      setFormSubmitting(false);
-      return;
-    }
-
-    try {
-      if (editingPost) {
-        const { error } = await supabase
-          .from('posts')
-          .update(postForm)
-          .eq('id', editingPost.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('posts')
-          .insert([postForm]);
-        if (error) throw error;
-      }
-      await fetchAllData();
-      setShowPostModal(false);
+      
+      setFeedbackMsg({ type: 'success', text: 'Inquiry status updated successfully.' });
     } catch (err: any) {
-      alert(`Supabase Error: ${err.message || 'Unable to save post'}`);
-    } finally {
-      setFormSubmitting(false);
+      console.error('Error updating inquiry status:', err);
+      setFeedbackMsg({ type: 'error', text: err.message || 'Failed to update status.' });
     }
   };
 
-  const handleDeletePost = async (id: string) => {
-    if (!confirm("Are you sure you want to permanently delete this blog post?")) return;
-
-    if (!isSupabaseConfigured) {
-      const updatedPosts = posts.filter(p => p.id !== id);
-      setPosts(updatedPosts);
-      localStorage.setItem('matem_posts', JSON.stringify(updatedPosts));
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('posts')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-      await fetchAllData();
-    } catch (err: any) {
-      alert(`Delete error: ${err.message}`);
-    }
-  };
-
-
-  // ==========================================
-  // EVENTS CRUD OPERATIONS
-  // ==========================================
-  const handleOpenEventModal = (ev: EventItem | null = null) => {
-    if (ev) {
-      setEditingEvent(ev);
-      setEventForm({
-        title: ev.title,
-        description: ev.description,
-        date: ev.date,
-        time: ev.time,
-        location: ev.location,
-        category: ev.category
-      });
-    } else {
-      setEditingEvent(null);
-      setEventForm({
-        title: '',
-        description: '',
-        date: new Date().toISOString().split('T')[0],
-        time: '08:00 AM',
-        location: '',
-        category: 'academic'
-      });
-    }
-    setShowEventModal(true);
-  };
-
-  const handleEventSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormSubmitting(true);
-
-    if (!isSupabaseConfigured) {
-      let updatedEvents = [...events];
-      if (editingEvent) {
-        updatedEvents = events.map(ev => ev.id === editingEvent.id ? { ...ev, ...eventForm } : ev);
-      } else {
-        const newRecord: EventItem = {
-          id: `ev-${Date.now()}`,
-          ...eventForm
-        };
-        updatedEvents.unshift(newRecord);
-      }
-      setEvents(updatedEvents);
-      localStorage.setItem('matem_events', JSON.stringify(updatedEvents));
-      setShowEventModal(false);
-      setFormSubmitting(false);
-      return;
-    }
-
-    try {
-      if (editingEvent) {
-        const { error } = await supabase
-          .from('events')
-          .update(eventForm)
-          .eq('id', editingEvent.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('events')
-          .insert([eventForm]);
-        if (error) throw error;
-      }
-      await fetchAllData();
-      setShowEventModal(false);
-    } catch (err: any) {
-      alert(`Supabase Error: ${err.message || 'Unable to save event'}`);
-    } finally {
-      setFormSubmitting(false);
-    }
-  };
-
-  const handleDeleteEvent = async (id: string) => {
-    if (!confirm("Are you sure you want to permanently delete this school event?")) return;
-
-    if (!isSupabaseConfigured) {
-      const updatedEvents = events.filter(ev => ev.id !== id);
-      setEvents(updatedEvents);
-      localStorage.setItem('matem_events', JSON.stringify(updatedEvents));
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('events')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-      await fetchAllData();
-    } catch (err: any) {
-      alert(`Delete error: ${err.message}`);
-    }
-  };
-
-  // ==========================================
-  // FILTERING LOGIC
-  // ==========================================
+  // Filter lists based on Search & Select Inputs
   const filteredInquiries = inquiries.filter(inq => {
-    const matchesSearch = inq.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          inq.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          inq.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          inq.phone.includes(searchQuery);
+    const matchesSearch = (inq.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (inq.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (inq.message || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || inq.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   const filteredPosts = posts.filter(p => {
-    const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          p.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          p.author.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
+    const matchesSearch = (p.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (p.excerpt || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (p.content || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryPostFilter === 'all' || p.category === categoryPostFilter;
     return matchesSearch && matchesCategory;
   });
 
   const filteredEvents = events.filter(ev => {
-    const matchesSearch = ev.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          ev.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          ev.location.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || ev.category === categoryFilter;
+    const matchesSearch = (ev.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (ev.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (ev.location || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryEventFilter === 'all' || ev.category === categoryEventFilter;
     return matchesSearch && matchesCategory;
   });
 
-  return (
-    <>
-      <Navbar />
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center" id="loading-container">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="w-12 h-12 text-slate-800 animate-spin" id="loading-spinner" />
+          <p className="text-slate-600 font-medium animate-pulse" id="loading-text">Synchronizing administrative workspace...</p>
+        </div>
+      </div>
+    );
+  }
 
-      {/* Staff Login Overlay */}
-      {!isAuthenticated ? (
-        <section id="admin-login" className="py-24 bg-gray-50 flex items-center justify-center min-h-[75vh]">
-          <div className="max-w-md w-full mx-4 bg-white rounded-2xl shadow-premium border border-gray-100 p-8 space-y-6">
-            <div className="text-center space-y-2">
-              <div className="w-12 h-12 bg-gold-100 text-gold-800 rounded-full flex items-center justify-center mx-auto">
-                <Lock className="h-6 w-6 text-navy-800" />
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800" id="admin-workspace">
+      {/* 1. AUTH LOGIN VIEW */}
+      {!session ? (
+        <div className="flex-1 flex items-center justify-center p-6 bg-slate-100" id="login-container">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden"
+            id="login-card"
+          >
+            {/* Login Header */}
+            <div className="bg-slate-900 text-white p-8 text-center relative" id="login-header">
+              <div className="absolute top-4 right-4 text-amber-400" id="login-icon-badge">
+                <Sparkles className="w-5 h-5 animate-pulse" />
               </div>
-              <h1 className="font-serif text-2xl font-bold text-navy-800">Staff Portal Access</h1>
-              <p className="text-xs text-gray-400">
-                Authorized Matem Private School & Matem College staff only.
+              <h2 className="text-2xl font-bold font-serif tracking-tight text-white mb-2" id="login-title">
+                MATEM SCHOOLS
+              </h2>
+              <p className="text-xs text-slate-300 font-mono tracking-widest uppercase" id="login-subtitle">
+                Administrative Workspace
               </p>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-4 text-xs">
+            {/* Login Form */}
+            <form onSubmit={handleLogin} className="p-8 space-y-6" id="login-form">
               {authError && (
-                <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 font-medium flex items-center">
-                  <AlertCircle className="h-4 w-4 mr-2 shrink-0" /> {authError}
+                <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm flex items-start space-x-2 rounded-md" id="login-error-alert">
+                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                  <span>{authError}</span>
                 </div>
               )}
 
-              <div className="space-y-1">
-                <label className="block text-gray-700 font-bold">Staff Passcode</label>
-                <input
-                  type="password"
-                  placeholder="Enter staff password"
-                  value={passcode}
-                  onChange={(e) => setPasscode(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-gold-500 text-gray-800 font-mono text-center tracking-widest text-sm"
-                  required
-                  autoFocus
-                />
-                <span className="block text-[10px] text-gray-400 mt-1.5 text-center">
-                  * Note: Use passcode <strong className="font-bold text-navy-800 font-mono text-xs select-all bg-gray-100 px-1 rounded">admin123</strong> to review this dashboard.
-                </span>
+              <div className="space-y-2" id="login-email-group">
+                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
+                  Admin Email
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                    <Mail className="w-5 h-5" />
+                  </span>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="admin@matemschools.edu"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 transition-all text-sm"
+                    required
+                    id="login-email-input"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2" id="login-password-group">
+                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
+                  Security Password
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                    <Lock className="w-5 h-5" />
+                  </span>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 transition-all text-sm"
+                    required
+                    id="login-password-input"
+                  />
+                </div>
               </div>
 
               <button
                 type="submit"
+                disabled={authLoading}
+                className="w-full bg-slate-950 text-white font-medium py-3 px-4 rounded-xl hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-950 active:scale-98 transition-all flex items-center justify-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed text-sm"
                 id="login-submit-btn"
-                className="w-full bg-navy-800 hover:bg-navy-950 text-white font-bold py-3.5 rounded-xl shadow transition-colors text-xs cursor-pointer"
               >
-                Access Dashboard
+                {authLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Verifying Credentials...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="w-5 h-5" />
+                    <span>Authorize & Access</span>
+                  </>
+                )}
               </button>
-            </form>
-          </div>
-        </section>
-      ) : (
-        /* Authenticated Dashboard */
-        <section id="admin-dashboard" className="py-12 bg-gray-50 min-h-screen">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-            
-            {/* Supabase Status Banner */}
-            <div className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs font-medium ${
-              isSupabaseConfigured 
-                ? 'bg-emerald-50/80 border-emerald-100 text-emerald-800' 
-                : 'bg-amber-50/80 border-amber-100 text-amber-800'
-            }`}>
-              <div className="flex items-center space-x-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                  isSupabaseConfigured ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
-                }`}>
-                  <Database className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="font-bold text-sm flex items-center">
-                    {connectionMessage}
-                  </p>
-                  <p className="opacity-90 text-[11px] mt-0.5">
-                    {isSupabaseConfigured 
-                      ? "Your tables are connected. Any inserts, updates, and deletes are saved directly to your remote Supabase instance."
-                      : "We've enabled client-side local persistence so you can fully test editing, creating, and deleting records in real time!"
-                    }
-                  </p>
-                </div>
-              </div>
-              {!isSupabaseConfigured && (
-                <div className="flex items-center space-x-2 shrink-0 bg-white/70 px-3 py-1.5 rounded-lg border border-amber-100 self-start md:self-auto">
-                  <Info className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                  <span>Configure <strong className="font-mono">NEXT_PUBLIC_SUPABASE_URL</strong> to go live.</span>
-                </div>
-              )}
-            </div>
 
-            {/* Dashboard Header */}
-            <div className="bg-navy-800 text-white rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 border-b border-gold-500/30 shadow-lg">
-              <div className="space-y-1">
-                <span className="text-xs font-bold text-gold-400 uppercase tracking-widest block font-mono">
-                  Governance Admin Portal
-                </span>
-                <h1 className="font-serif text-3xl font-black text-white">Matem Staff Dashboard</h1>
-                <p className="text-xs text-gray-300 font-light font-sans">
-                  Comprehensive CRUD operations for admissions, news blog articles, and upcoming events.
+              <div className="pt-2 text-center border-t border-slate-100" id="login-footer">
+                <p className="text-xs text-slate-400 font-mono">
+                  Protected by standard Row Level Security
                 </p>
               </div>
-              <div className="flex items-center space-x-3 shrink-0">
-                <button
-                  onClick={fetchAllData}
-                  id="sync-db-btn"
-                  className="bg-navy-700 hover:bg-navy-600 text-gray-200 hover:text-white px-4 py-2.5 rounded-xl text-xs font-semibold transition-colors flex items-center cursor-pointer"
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 mr-2 ${loading ? 'animate-spin' : ''}`} /> Sync Live
-                </button>
-                <button
-                  onClick={() => setIsAuthenticated(false)}
-                  id="logout-btn"
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
-                >
-                  Logout Staff
-                </button>
+            </form>
+          </motion.div>
+        </div>
+      ) : (
+        /* 2. DASHBOARD MANAGER VIEW */
+        <div className="flex-1 flex flex-col md:flex-row min-h-screen" id="dashboard-layout">
+          {/* Sidebar Menu */}
+          <aside className="w-full md:w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800" id="sidebar">
+            <div className="p-6 border-b border-slate-800 flex items-center space-x-3 bg-slate-950" id="sidebar-header">
+              <div className="w-8 h-8 rounded-lg bg-amber-400 flex items-center justify-center font-bold text-slate-950" id="sidebar-logo">
+                M
+              </div>
+              <div>
+                <h1 className="text-md font-bold text-white tracking-wide uppercase font-serif">MATEM</h1>
+                <p className="text-[9px] font-mono tracking-widest text-slate-400 uppercase">Admin Workspace</p>
               </div>
             </div>
 
-            {/* Layout Main Container */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              
-              {/* Sidebar Navigation */}
-              <div className="lg:col-span-3 space-y-4">
-                <div className="bg-white p-4 rounded-xl shadow-premium border border-gray-100 space-y-1.5">
-                  <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider px-2.5 mb-2 font-mono">
-                    System Entities
-                  </p>
-                  <button
-                    onClick={() => { setActiveTab('inquiries'); setSearchQuery(''); }}
-                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-lg text-xs font-bold transition-all ${
-                      activeTab === 'inquiries'
-                        ? 'bg-navy-800 text-white shadow-sm'
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-center">
-                      <MessageSquare className="h-4 w-4 mr-2.5" />
-                      <span>Inquiries & Admissions</span>
-                    </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-                      activeTab === 'inquiries' ? 'bg-navy-700 text-gold-300' : 'bg-gray-100 text-gray-500'
-                    }`}>
-                      {inquiries.length}
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => { setActiveTab('posts'); setSearchQuery(''); }}
-                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-lg text-xs font-bold transition-all ${
-                      activeTab === 'posts'
-                        ? 'bg-navy-800 text-white shadow-sm'
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-center">
-                      <Newspaper className="h-4 w-4 mr-2.5" />
-                      <span>Manage School Blog</span>
-                    </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-                      activeTab === 'posts' ? 'bg-navy-700 text-gold-300' : 'bg-gray-100 text-gray-500'
-                    }`}>
-                      {posts.length}
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => { setActiveTab('events'); setSearchQuery(''); }}
-                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-lg text-xs font-bold transition-all ${
-                      activeTab === 'events'
-                        ? 'bg-navy-800 text-white shadow-sm'
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2.5" />
-                      <span>Manage Campus Events</span>
-                    </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-                      activeTab === 'events' ? 'bg-navy-700 text-gold-300' : 'bg-gray-100 text-gray-500'
-                    }`}>
-                      {events.length}
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => { setActiveTab('carousel'); setSearchQuery(''); }}
-                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-lg text-xs font-bold transition-all ${
-                      activeTab === 'carousel'
-                        ? 'bg-navy-800 text-white shadow-sm'
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-center">
-                      <Images className="h-4 w-4 mr-2.5" />
-                      <span>Manage Carousels</span>
-                    </div>
-                  </button>
+            {/* Navigation Tabs */}
+            <nav className="flex-1 p-4 space-y-1.5" id="sidebar-nav">
+              <button
+                onClick={() => { setActiveTab('inquiries'); setSearchQuery(''); }}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                  activeTab === 'inquiries'
+                    ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
+                    : 'hover:bg-slate-800 text-slate-300 hover:text-white'
+                }`}
+                id="sidebar-btn-inquiries"
+              >
+                <div className="flex items-center space-x-3">
+                  <MessageSquare className="w-4 h-4 shrink-0" />
+                  <span>Student Inquiries</span>
                 </div>
-
-                <div className="bg-white p-5 rounded-xl shadow-premium border border-gray-100 space-y-3">
-                  <h3 className="text-xs font-bold text-navy-800">Need Help?</h3>
-                  <p className="text-[11px] text-gray-400 leading-relaxed">
-                    This administrative suite is designed to synchronize cleanly with the PostgreSQL database. Creating posts or events here will immediately display them on the corresponding visitor pages.
-                  </p>
-                  <div className="text-[10px] font-mono bg-gray-50 border rounded-lg p-2.5 text-gray-500 space-y-1">
-                    <p className="font-bold text-navy-800">Schema Constraints Checked:</p>
-                    <p>• Inquiries Arm: private-school | college</p>
-                    <p>• Posts Category: School News | Announcements | Academic Achievements | Notices</p>
-                    <p>• Events Category: academic | sports | cultural | other</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Data & Table Panel Area */}
-              <div className="lg:col-span-9 space-y-6">
-                
-                {/* Global Search and Tab Filter Tools */}
-                {activeTab !== 'carousel' && (
-                  <div className="bg-white p-4 rounded-xl shadow-premium border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <input
-                        type="text"
-                        placeholder={`Search ${activeTab}...`}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-4 py-2.5 text-xs text-gray-700 focus:outline-none focus:border-gold-500"
-                      />
-                      {searchQuery && (
-                        <button onClick={() => setSearchQuery("")} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex items-center space-x-3 shrink-0">
-                      {/* Secondary Filters for Specific Tabs */}
-                      {activeTab === 'inquiries' && (
-                        <div className="flex items-center space-x-2 text-xs">
-                          <Filter className="h-3.5 w-3.5 text-gray-400" />
-                          <select
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-2 text-gray-600 focus:outline-none focus:border-gold-500"
-                          >
-                            <option value="all">All Statuses</option>
-                            <option value="pending">Pending</option>
-                            <option value="contacted">Contacted</option>
-                            <option value="resolved">Resolved</option>
-                          </select>
-                        </div>
-                      )}
-
-                      {(activeTab === 'posts' || activeTab === 'events') && (
-                        <div className="flex items-center space-x-2 text-xs">
-                          <Filter className="h-3.5 w-3.5 text-gray-400" />
-                          <select
-                            value={categoryFilter}
-                            onChange={(e) => setCategoryFilter(e.target.value)}
-                            className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-2 text-gray-600 focus:outline-none focus:border-gold-500"
-                          >
-                            <option value="all">All Categories</option>
-                            {activeTab === 'posts' ? (
-                              <>
-                                <option value="School News">School News</option>
-                                <option value="Academic Achievements">Academic Achievements</option>
-                                <option value="Announcements">Announcements</option>
-                                <option value="Notices">Notices</option>
-                              </>
-                            ) : (
-                              <>
-                                <option value="academic">Academic</option>
-                                <option value="sports">Sports</option>
-                                <option value="cultural">Cultural</option>
-                                <option value="other">Other</option>
-                              </>
-                            )}
-                          </select>
-                        </div>
-                      )}
-
-                      {/* Action buttons to trigger modals */}
-                      <button
-                        onClick={() => {
-                          if (activeTab === 'inquiries') handleOpenInquiryModal();
-                          else if (activeTab === 'posts') handleOpenPostModal();
-                          else if (activeTab === 'events') handleOpenEventModal();
-                        }}
-                        id="add-new-btn"
-                        className="bg-navy-800 hover:bg-navy-950 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center shadow transition-colors cursor-pointer shrink-0"
-                      >
-                        <Plus className="h-3.5 w-3.5 mr-1.5" /> 
-                        Add New {activeTab === 'inquiries' ? 'Inquiry' : activeTab === 'posts' ? 'Post' : 'Event'}
-                      </button>
-                    </div>
-                  </div>
+                {inquiries.filter(i => i.status === 'pending').length > 0 && (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
+                    activeTab === 'inquiries' ? 'bg-slate-950 text-white' : 'bg-red-500 text-white'
+                  }`}>
+                    {inquiries.filter(i => i.status === 'pending').length}
+                  </span>
                 )}
+              </button>
 
-                {/* Sub Tab View Renderers */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-premium overflow-hidden">
-                  {loading ? (
-                    <div className="flex flex-col items-center justify-center py-24 space-y-3">
-                      <Loader2 className="h-8 w-8 text-gold-500 animate-spin" />
-                      <p className="text-xs text-gray-400 font-medium">Loading synced records...</p>
-                    </div>
-                  ) : (
-                    <>
-                      {/* ==================================== */}
-                      {/* INQUIRIES VIEW */}
-                      {/* ==================================== */}
-                      {activeTab === 'inquiries' && (
-                        <div className="divide-y divide-gray-100">
-                          {filteredInquiries.length === 0 ? (
-                            <div className="text-center py-16 text-gray-400 text-xs">
-                              <MessageSquare className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                              No inquiries found matching the search criteria.
-                            </div>
-                          ) : (
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-left text-xs border-collapse">
-                                <thead className="bg-gray-50 text-gray-500 uppercase tracking-wider font-mono font-bold border-b border-gray-100">
-                                  <tr>
-                                    <th className="p-4 pl-6">Contact info</th>
-                                    <th className="p-4">Details</th>
-                                    <th className="p-4">Message</th>
-                                    <th className="p-4">Status Workflow</th>
-                                    <th className="p-4 pr-6 text-right">Actions</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 text-gray-700">
-                                  {filteredInquiries.map((inq) => (
-                                    <tr key={inq.id} className="hover:bg-gray-50/50 transition-colors">
-                                      <td className="p-4 pl-6 space-y-1">
-                                        <p className="font-bold text-navy-800 text-sm">{inq.name}</p>
-                                        <p className="text-[11px] text-gray-400">{inq.email}</p>
-                                        <p className="text-[11px] text-gray-400 font-mono">{inq.phone}</p>
-                                      </td>
-                                      <td className="p-4 space-y-1 shrink-0 whitespace-nowrap">
-                                        <div className="flex items-center space-x-1.5">
-                                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase font-mono ${
-                                            inq.arm === 'private-school' ? 'bg-blue-50 text-blue-600' : 'bg-indigo-50 text-indigo-600'
-                                          }`}>
-                                            {inq.arm === 'private-school' ? 'Private School' : 'College'}
-                                          </span>
-                                          <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase font-mono">
-                                            {inq.purpose}
-                                          </span>
-                                        </div>
-                                        <p className="text-[10px] text-gray-400 font-mono">{inq.date}</p>
-                                      </td>
-                                      <td className="p-4 max-w-xs">
-                                        <p className="line-clamp-2 text-gray-500 leading-relaxed text-[11px]" title={inq.message}>
-                                          {inq.message}
-                                        </p>
-                                      </td>
-                                      <td className="p-4">
-                                        <select
-                                          value={inq.status}
-                                          onChange={(e) => handleQuickInquiryStatusChange(inq.id, e.target.value as Inquiry['status'])}
-                                          className={`px-2.5 py-1.5 rounded-lg font-bold font-mono text-[10px] uppercase border focus:outline-none cursor-pointer ${
-                                            inq.status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                            inq.status === 'contacted' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                            'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                          }`}
-                                        >
-                                          <option value="pending">Pending</option>
-                                          <option value="contacted">Contacted</option>
-                                          <option value="resolved">Resolved</option>
-                                        </select>
-                                      </td>
-                                      <td className="p-4 pr-6 text-right">
-                                        <div className="flex items-center justify-end space-x-2">
-                                          <button
-                                            onClick={() => handleOpenInquiryModal(inq)}
-                                            className="p-1.5 hover:bg-gray-100 text-gray-500 hover:text-navy-800 rounded-lg transition-colors cursor-pointer"
-                                            title="Edit Inquiry Details"
-                                          >
-                                            <Edit2 className="h-3.5 w-3.5" />
-                                          </button>
-                                          <button
-                                            onClick={() => handleDeleteInquiry(inq.id)}
-                                            className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
-                                            title="Delete Inquiry"
-                                          >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                          </button>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
-                        </div>
-                      )}
+              <button
+                onClick={() => { setActiveTab('posts'); setSearchQuery(''); }}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                  activeTab === 'posts'
+                    ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
+                    : 'hover:bg-slate-800 text-slate-300 hover:text-white'
+                }`}
+                id="sidebar-btn-posts"
+              >
+                <Newspaper className="w-4 h-4 shrink-0" />
+                <span>Blog Articles</span>
+              </button>
 
-                      {/* ==================================== */}
-                      {/* POSTS VIEW */}
-                      {/* ==================================== */}
-                      {activeTab === 'posts' && (
-                        <div className="divide-y divide-gray-100">
-                          {filteredPosts.length === 0 ? (
-                            <div className="text-center py-16 text-gray-400 text-xs">
-                              <Newspaper className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                              No blog posts found matching the search criteria.
-                            </div>
-                          ) : (
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-left text-xs border-collapse">
-                                <thead className="bg-gray-50 text-gray-500 uppercase tracking-wider font-mono font-bold border-b border-gray-100">
-                                  <tr>
-                                    <th className="p-4 pl-6">Post Cover</th>
-                                    <th className="p-4">Title & Excerpt</th>
-                                    <th className="p-4">Author & Date</th>
-                                    <th className="p-4 pr-6 text-right">Actions</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 text-gray-700">
-                                  {filteredPosts.map((post) => (
-                                    <tr key={post.id} className="hover:bg-gray-50/50 transition-colors">
-                                      <td className="p-4 pl-6 shrink-0">
-                                        <div className="relative w-16 h-12 rounded-lg bg-gray-100 overflow-hidden border border-gray-200">
-                                          <img
-                                            src={post.image || 'https://picsum.photos/seed/default/100/100'}
-                                            alt={post.title}
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => {
-                                              (e.target as HTMLImageElement).src = 'https://picsum.photos/seed/default/100/100';
-                                            }}
-                                          />
-                                        </div>
-                                      </td>
-                                      <td className="p-4 max-w-sm space-y-1">
-                                        <div className="flex items-center space-x-2">
-                                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-navy-50 text-navy-700 uppercase font-mono">
-                                            {post.category}
-                                          </span>
-                                        </div>
-                                        <p className="font-bold text-navy-800 text-sm leading-snug line-clamp-1">{post.title}</p>
-                                        <p className="text-[11px] text-gray-400 line-clamp-1 leading-relaxed">{post.excerpt}</p>
-                                      </td>
-                                      <td className="p-4 space-y-1">
-                                        <p className="font-medium text-gray-800">{post.author}</p>
-                                        <p className="text-[10px] text-gray-400 font-mono flex items-center">
-                                          <Clock className="h-3 w-3 mr-1" /> {post.date}
-                                        </p>
-                                      </td>
-                                      <td className="p-4 pr-6 text-right">
-                                        <div className="flex items-center justify-end space-x-2">
-                                          <button
-                                            onClick={() => handleOpenPostModal(post)}
-                                            className="p-1.5 hover:bg-gray-100 text-gray-500 hover:text-navy-800 rounded-lg transition-colors cursor-pointer"
-                                            title="Edit Post"
-                                          >
-                                            <Edit2 className="h-3.5 w-3.5" />
-                                          </button>
-                                          <button
-                                            onClick={() => handleDeletePost(post.id)}
-                                            className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
-                                            title="Delete Post"
-                                          >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                          </button>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
-                        </div>
-                      )}
+              <button
+                onClick={() => { setActiveTab('events'); setSearchQuery(''); }}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                  activeTab === 'events'
+                    ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
+                    : 'hover:bg-slate-800 text-slate-300 hover:text-white'
+                }`}
+                id="sidebar-btn-events"
+              >
+                <Calendar className="w-4 h-4 shrink-0" />
+                <span>School Events</span>
+              </button>
+            </nav>
 
-                      {/* ==================================== */}
-                      {/* EVENTS VIEW */}
-                      {/* ==================================== */}
-                      {activeTab === 'events' && (
-                        <div className="divide-y divide-gray-100">
-                          {filteredEvents.length === 0 ? (
-                            <div className="text-center py-16 text-gray-400 text-xs">
-                              <Calendar className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                              No events found matching the search criteria.
-                            </div>
-                          ) : (
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-left text-xs border-collapse">
-                                <thead className="bg-gray-50 text-gray-500 uppercase tracking-wider font-mono font-bold border-b border-gray-100">
-                                  <tr>
-                                    <th className="p-4 pl-6">Title & Description</th>
-                                    <th className="p-4">Schedule</th>
-                                    <th className="p-4">Venue/Location</th>
-                                    <th className="p-4 pr-6 text-right">Actions</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 text-gray-700">
-                                  {filteredEvents.map((ev) => (
-                                    <tr key={ev.id} className="hover:bg-gray-50/50 transition-colors">
-                                      <td className="p-4 pl-6 max-w-sm space-y-1">
-                                        <div className="flex items-center space-x-2">
-                                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase font-mono ${
-                                            ev.category === 'academic' ? 'bg-purple-50 text-purple-700' :
-                                            ev.category === 'sports' ? 'bg-orange-50 text-orange-700' :
-                                            ev.category === 'cultural' ? 'bg-teal-50 text-teal-700' :
-                                            'bg-gray-50 text-gray-700'
-                                          }`}>
-                                            {ev.category}
-                                          </span>
-                                        </div>
-                                        <p className="font-bold text-navy-800 text-sm leading-snug">{ev.title}</p>
-                                        <p className="text-[11px] text-gray-400 line-clamp-1 leading-relaxed">{ev.description}</p>
-                                      </td>
-                                      <td className="p-4 space-y-1 whitespace-nowrap">
-                                        <p className="font-bold text-gray-800 font-mono text-[11px]">{ev.date}</p>
-                                        <p className="text-[10px] text-gray-400 flex items-center">
-                                          <Clock className="h-3 w-3 mr-1" /> {ev.time}
-                                        </p>
-                                      </td>
-                                      <td className="p-4 max-w-[180px]">
-                                        <p className="text-[11px] text-gray-600 font-medium flex items-start leading-tight">
-                                          <MapPin className="h-3 w-3 mr-1 mt-0.5 text-gray-400 shrink-0" />
-                                          <span>{ev.location}</span>
-                                        </p>
-                                      </td>
-                                      <td className="p-4 pr-6 text-right">
-                                        <div className="flex items-center justify-end space-x-2">
-                                          <button
-                                            onClick={() => handleOpenEventModal(ev)}
-                                            className="p-1.5 hover:bg-gray-100 text-gray-500 hover:text-navy-800 rounded-lg transition-colors cursor-pointer"
-                                            title="Edit Event"
-                                          >
-                                            <Edit2 className="h-3.5 w-3.5" />
-                                          </button>
-                                          <button
-                                            onClick={() => handleDeleteEvent(ev.id)}
-                                            className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
-                                            title="Delete Event"
-                                          >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                          </button>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* ==================================== */}
-                      {/* ==================================== */}
-                      {/* CAROUSEL VIEW */}
-                      {/* ==================================== */}
-                      {activeTab === 'carousel' && (
-                        <div className="p-6 space-y-6">
-                          {/* Carousel Selector / Sub-tab Navigation */}
-                          <div className="border-b border-gray-200">
-                            <nav className="flex flex-wrap -mb-px gap-2" aria-label="Tabs">
-                              {[
-                                { key: 'homepage', label: 'Homepage Slides' },
-                                { key: 'nurseryPrimary', label: 'Nursery & Primary' },
-                                { key: 'secondary', label: 'Secondary College' },
-                                { key: 'academicAchievement', label: 'Academic Achievement' },
-                                { key: 'gallery', label: 'Gallery Showcase' },
-                                { key: 'event', label: 'Event Highlight' }
-                              ].map((tab) => (
-                                <button
-                                  key={tab.key}
-                                  onClick={() => setCarouselSubTab(tab.key as any)}
-                                  className={`whitespace-nowrap py-2 px-3 border-b-2 font-medium text-xs transition-all cursor-pointer rounded-t-lg ${
-                                    carouselSubTab === tab.key
-                                      ? 'border-gold-500 text-navy-800 bg-gold-50/30'
-                                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                  }`}
-                                >
-                                  {tab.label}
-                                </button>
-                              ))}
-                            </nav>
-                          </div>
-
-                          {/* Render current subtab settings dynamically */}
-                          {(() => {
-                            // Map key to states and info
-                            let title = "Homepage Carousel Settings";
-                            let desc = "Manage the image slides that rotate automatically on the home page hero section.";
-                            let images: string[] = [];
-                            let interval = 5;
-                            let isUploading = false;
-                            let newUrl = "";
-                            let setNewUrl: (val: string) => void = () => {};
-
-                            if (carouselSubTab === 'homepage') {
-                              images = carouselImages;
-                              interval = carouselInterval;
-                              isUploading = isUploadingCarousel;
-                              newUrl = newCarouselUrl;
-                              setNewUrl = setNewCarouselUrl;
-                            } else if (carouselSubTab === 'nurseryPrimary') {
-                              title = "Nursery & Primary Carousel";
-                              desc = "Manage the carousel slides shown on the Nursery & Primary arm page.";
-                              images = nurseryPrimaryImages;
-                              interval = nurseryPrimaryInterval;
-                              isUploading = isUploadingNurseryPrimary;
-                              newUrl = newNurseryPrimaryUrl;
-                              setNewUrl = setNewNurseryPrimaryUrl;
-                            } else if (carouselSubTab === 'secondary') {
-                              title = "Secondary College Carousel";
-                              desc = "Manage the carousel slides shown on the Secondary College arm page.";
-                              images = secondaryImages;
-                              interval = secondaryInterval;
-                              isUploading = isUploadingSecondary;
-                              newUrl = newSecondaryUrl;
-                              setNewUrl = setNewSecondaryUrl;
-                            } else if (carouselSubTab === 'academicAchievement') {
-                              title = "Academic Achievement Carousel";
-                              desc = "Manage slides showcasing high-achieving pupils and school academic milestones.";
-                              images = academicAchievementImages;
-                              interval = academicAchievementInterval;
-                              isUploading = isUploadingAcademicAchievement;
-                              newUrl = newAcademicAchievementUrl;
-                              setNewUrl = setNewAcademicAchievementUrl;
-                            } else if (carouselSubTab === 'gallery') {
-                              title = "Gallery Showcase Carousel";
-                              desc = "Manage the sliding gallery image showcases seen on the school's Gallery page.";
-                              images = galleryImages;
-                              interval = galleryInterval;
-                              isUploading = isUploadingGallery;
-                              newUrl = newGalleryUrl;
-                              setNewUrl = setNewGalleryUrl;
-                            } else if (carouselSubTab === 'event') {
-                              title = "Event Highlights Carousel";
-                              desc = "Manage the featured rotating slides appearing on the Events & Highlights page.";
-                              images = eventImages;
-                              interval = eventInterval;
-                              isUploading = isUploadingEvent;
-                              newUrl = newEventUrl;
-                              setNewUrl = setNewEventUrl;
-                            }
-
-                            const saveStatus = carouselSaveStatus[carouselSubTab] || 'idle';
-
-                            return (
-                              <div className="space-y-6 animate-fadeIn">
-                                <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 gap-4">
-                                  <div>
-                                    <h2 className="text-base font-bold text-navy-800 font-serif flex items-center">
-                                      <Images className="h-4 w-4 mr-2 text-gold-500" />
-                                      {title}
-                                    </h2>
-                                    <p className="text-[11px] text-gray-400 mt-1">{desc}</p>
-                                  </div>
-                                  <div className="flex items-center space-x-2 text-xs">
-                                    <span className="font-semibold text-gray-500">Rotate every:</span>
-                                    <select
-                                      value={interval}
-                                      onChange={(e) => handleIntervalChange(carouselSubTab, Number(e.target.value))}
-                                      className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 font-medium focus:outline-none focus:border-gold-500"
-                                    >
-                                      <option value={2}>2 seconds</option>
-                                      <option value={3}>3 seconds</option>
-                                      <option value={4}>4 seconds</option>
-                                      <option value={5}>5 seconds</option>
-                                      <option value={6}>6 seconds</option>
-                                      <option value={8}>8 seconds</option>
-                                      <option value={10}>10 seconds</option>
-                                    </select>
-                                  </div>
-                                </div>
-
-                                {/* Upload and Paste Tools */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/50 p-4 rounded-xl border border-dashed border-gray-200">
-                                  <div className="space-y-2">
-                                    <label className="block text-xs font-bold text-navy-800">Paste Image URL</label>
-                                    <div className="flex space-x-2">
-                                      <input
-                                        type="text"
-                                        placeholder="https://example.com/slide.jpg"
-                                        value={newUrl}
-                                        onChange={(e) => setNewUrl(e.target.value)}
-                                        className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-gold-500"
-                                      />
-                                      <button
-                                        type="button"
-                                        onClick={() => handleAddUrl(carouselSubTab, newUrl)}
-                                        className="bg-navy-800 hover:bg-navy-900 text-white px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer"
-                                      >
-                                        Add URL
-                                      </button>
-                                    </div>
-                                    <p className="text-[10px] text-gray-400">Add any direct link to an online image (from Unsplash, Picsum, etc.).</p>
-                                  </div>
-
-                                  <div className="space-y-2">
-                                    <label className="block text-xs font-bold text-navy-800">Upload Image File</label>
-                                    <div className="relative">
-                                      <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => handleFileUpload(carouselSubTab, e)}
-                                        disabled={isUploading}
-                                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-gold-500 cursor-pointer file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
-                                      />
-                                    </div>
-                                    <p className="text-[10px] text-gray-400">Upload a file from your computer. It is converted to safe offline storage instantly.</p>
-                                  </div>
-                                </div>
-
-                                {/* Image Gallery Grid */}
-                                <div>
-                                  <h3 className="text-xs font-bold text-navy-800 mb-3 font-semibold">Active Slides ({images.length})</h3>
-                                  {images.length === 0 ? (
-                                    <div className="text-center py-12 text-gray-400 text-xs border border-dashed rounded-xl">
-                                      <Sparkles className="h-6 w-6 mx-auto mb-1 text-gray-300" />
-                                      No carousel slides. Please add or upload some images above!
-                                    </div>
-                                  ) : (
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                      {images.map((img, idx) => (
-                                        <div key={idx} className="relative group border rounded-xl overflow-hidden bg-gray-50 aspect-video shadow-sm">
-                                          <img
-                                            src={img}
-                                            alt={`Slide ${idx + 1}`}
-                                            className="w-full h-full object-cover"
-                                            referrerPolicy="no-referrer"
-                                          />
-                                          <div className="absolute top-1 left-1 bg-black/60 text-white font-mono font-bold text-[9px] px-1.5 py-0.5 rounded">
-                                            Slide {idx + 1}
-                                          </div>
-                                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <button
-                                              type="button"
-                                              onClick={() => handleRemoveImage(carouselSubTab, idx)}
-                                              className="p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-md transition-colors cursor-pointer"
-                                              title="Remove Slide"
-                                            >
-                                              <Trash2 className="h-3.5 w-3.5" />
-                                            </button>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* SAVE AND PROCESS BUTTON (REQUIRED BY USER) */}
-                                <div className="pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-                                  <div className="text-xs text-gray-400 max-w-md">
-                                    <span className="font-semibold text-navy-800">Important Note:</span> After making additions, edits, or deletions, click the <strong className="text-navy-800">Save and Process</strong> button to write these slides to the database and update the live website.
-                                  </div>
-                                  <div className="flex items-center space-x-3 w-full sm:w-auto shrink-0 justify-end">
-                                    {saveStatus === 'success' && (
-                                      <span className="text-xs text-green-600 font-bold flex items-center animate-bounce">
-                                        ✓ Saved & Processed successfully!
-                                      </span>
-                                    )}
-                                    {saveStatus === 'error' && (
-                                      <span className="text-xs text-red-600 font-bold flex items-center">
-                                        ✗ Failed to save settings.
-                                      </span>
-                                    )}
-                                    <button
-                                      type="button"
-                                      onClick={() => saveCarouselSettings(carouselSubTab, images, interval)}
-                                      disabled={carouselSavingKey !== null}
-                                      className={`w-full sm:w-auto flex items-center justify-center px-5 py-2.5 rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer ${
-                                        carouselSavingKey === carouselSubTab
-                                          ? 'bg-gray-400 text-white cursor-not-allowed'
-                                          : 'bg-gold-500 hover:bg-gold-600 text-navy-950 hover:shadow-lg'
-                                      }`}
-                                    >
-                                      {carouselSavingKey === carouselSubTab ? (
-                                        <>
-                                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                          </svg>
-                                          Processing...
-                                        </>
-                                      ) : (
-                                        "Save and Process"
-                                      )}
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-
+            {/* Sidebar Footer with Session User and Logout */}
+            <div className="p-4 border-t border-slate-800 bg-slate-950" id="sidebar-footer">
+              <div className="mb-4 px-2" id="user-info">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-slate-500">Authorized Session</p>
+                <p className="text-xs font-medium text-white truncate">{session.user?.email}</p>
               </div>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center space-x-2 py-2 px-3 bg-red-950 hover:bg-red-900 border border-red-800 text-red-200 hover:text-white rounded-xl text-xs transition-all font-medium"
+                id="logout-btn"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Disconnect Portal</span>
+              </button>
             </div>
+          </aside>
 
-          </div>
-        </section>
-      )}
-
-      {/* ======================================================= */}
-      {/* INQUIRY MODAL (CREATE / EDIT) */}
-      {/* ======================================================= */}
-      <AnimatePresence>
-        {showInquiryModal && (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl max-w-xl w-full max-h-[90vh] overflow-hidden border border-gray-100"
-            >
-              <div className="bg-navy-800 text-white px-6 py-4 flex items-center justify-between">
-                <h3 className="font-serif text-lg font-bold">
-                  {editingInquiry ? 'Edit Inquiry Record' : 'Record New Parent Inquiry'}
-                </h3>
-                <button
-                  onClick={() => setShowInquiryModal(false)}
-                  className="p-1 rounded-lg hover:bg-navy-700 text-gray-300 hover:text-white transition-colors cursor-pointer"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+          {/* Main Dashboard Screen Area */}
+          <main className="flex-1 flex flex-col overflow-hidden bg-slate-50" id="main-content">
+            {/* Header */}
+            <header className="bg-white border-b border-slate-200 py-4 px-6 md:px-8 flex items-center justify-between shadow-sm z-10" id="main-header">
+              <div className="flex items-center space-x-2" id="header-left">
+                <LayoutDashboard className="w-5 h-5 text-slate-700" />
+                <h2 className="text-lg font-bold text-slate-800 capitalize font-serif" id="header-title">
+                  {activeTab} Management Panel
+                </h2>
               </div>
+              <div className="flex items-center space-x-3" id="header-right">
+                <button
+                  onClick={() => setRefreshTrigger(prev => prev + 1)}
+                  disabled={loading}
+                  title="Synchronize Database"
+                  className="p-2 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all disabled:opacity-50"
+                  id="sync-btn"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+                {activeTab !== 'inquiries' && (
+                  <button
+                    onClick={openCreateModal}
+                    className="flex items-center space-x-2 bg-slate-950 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm"
+                    id="create-new-btn"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Create New</span>
+                  </button>
+                )}
+              </div>
+            </header>
 
-              <form onSubmit={handleInquirySubmit} className="p-6 space-y-4 text-xs overflow-y-auto max-h-[75vh]">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-gray-700 font-bold">Parent Full Name</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Kola Adesina"
-                      value={inquiryForm.name}
-                      onChange={(e) => setInquiryForm({ ...inquiryForm, name: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-gray-700 font-bold">Email Address</label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="e.g. parent@example.com"
-                      value={inquiryForm.email}
-                      onChange={(e) => setInquiryForm({ ...inquiryForm, email: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500"
-                    />
-                  </div>
+            {/* Core Body */}
+            <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6" id="dashboard-body">
+              {/* Feedback messages / Notifications */}
+              <AnimatePresence>
+                {feedbackMsg && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className={`p-4 rounded-xl flex items-center justify-between ${
+                      feedbackMsg.type === 'success'
+                        ? 'bg-emerald-50 border-l-4 border-emerald-500 text-emerald-800'
+                        : 'bg-rose-50 border-l-4 border-rose-500 text-rose-800'
+                    }`}
+                    id="feedback-notification"
+                  >
+                    <div className="flex items-center space-x-3">
+                      {feedbackMsg.type === 'success' ? (
+                        <CheckCircle className="w-5 h-5 shrink-0" />
+                      ) : (
+                        <AlertCircle className="w-5 h-5 shrink-0" />
+                      )}
+                      <p className="text-sm font-medium">{feedbackMsg.text}</p>
+                    </div>
+                    <button
+                      onClick={() => setFeedbackMsg(null)}
+                      className="p-1 hover:bg-black/5 rounded"
+                      id="close-feedback-btn"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Filtering & Searching Controls Bar */}
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4" id="filters-bar">
+                <div className="relative flex-1" id="search-input-group">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                    <Search className="w-4 h-4" />
+                  </span>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={`Search by keyword in ${activeTab}...`}
+                    className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 bg-slate-50 focus:bg-white text-sm"
+                    id="search-input"
+                  />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-gray-700 font-bold">Phone Number</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. +234 80 1234 5678"
-                      value={inquiryForm.phone}
-                      onChange={(e) => setInquiryForm({ ...inquiryForm, phone: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 font-mono"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-gray-700 font-bold">Submission Date</label>
-                    <input
-                      type="date"
-                      required
-                      value={inquiryForm.date}
-                      onChange={(e) => setInquiryForm({ ...inquiryForm, date: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-gray-700 font-bold">School Arm</label>
+                <div className="flex items-center gap-2" id="filters-controls">
+                  <Filter className="w-4 h-4 text-slate-400 shrink-0" />
+                  
+                  {/* Category Filter for Inquiries */}
+                  {activeTab === 'inquiries' && (
                     <select
-                      value={inquiryForm.arm}
-                      onChange={(e) => setInquiryForm({ ...inquiryForm, arm: e.target.value as Inquiry['arm'] })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 font-medium"
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value as any)}
+                      className="border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
+                      id="inquiries-status-filter"
                     >
-                      <option value="private-school">Private School</option>
-                      <option value="college">College</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-gray-700 font-bold">Purpose Of Inquiry</label>
-                    <select
-                      value={inquiryForm.purpose}
-                      onChange={(e) => setInquiryForm({ ...inquiryForm, purpose: e.target.value as Inquiry['purpose'] })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 font-medium"
-                    >
-                      <option value="admission">Admissions</option>
-                      <option value="general">General Inquiry</option>
-                      <option value="complaint">Complaint</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-gray-700 font-bold">Initial Status</label>
-                    <select
-                      value={inquiryForm.status}
-                      onChange={(e) => setInquiryForm({ ...inquiryForm, status: e.target.value as Inquiry['status'] })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 font-medium"
-                    >
+                      <option value="all">All Statuses</option>
                       <option value="pending">Pending</option>
                       <option value="contacted">Contacted</option>
                       <option value="resolved">Resolved</option>
                     </select>
-                  </div>
-                </div>
+                  )}
 
-                <div className="space-y-1.5">
-                  <label className="block text-gray-700 font-bold">Inquiry Message</label>
-                  <textarea
-                    rows={4}
-                    required
-                    placeholder="Enter details submitted by the parent..."
-                    value={inquiryForm.message}
-                    onChange={(e) => setInquiryForm({ ...inquiryForm, message: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 leading-relaxed"
-                  />
-                </div>
-
-                <div className="pt-4 flex items-center justify-end space-x-3 border-t border-gray-100">
-                  <button
-                    type="button"
-                    onClick={() => setShowInquiryModal(false)}
-                    className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={formSubmitting}
-                    className="px-5 py-2.5 bg-navy-800 hover:bg-navy-950 text-white font-bold rounded-xl shadow transition-colors flex items-center cursor-pointer disabled:opacity-50"
-                  >
-                    {formSubmitting && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}
-                    {editingInquiry ? 'Save Changes' : 'Record Inquiry'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* ======================================================= */}
-      {/* BLOG POST MODAL (CREATE / EDIT) */}
-      {/* ======================================================= */}
-      <AnimatePresence>
-        {showPostModal && (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-gray-100"
-            >
-              <div className="bg-navy-800 text-white px-6 py-4 flex items-center justify-between">
-                <h3 className="font-serif text-lg font-bold">
-                  {editingPost ? 'Edit Blog Article' : 'Publish New Blog Article'}
-                </h3>
-                <button
-                  onClick={() => setShowPostModal(false)}
-                  className="p-1 rounded-lg hover:bg-navy-700 text-gray-300 hover:text-white transition-colors cursor-pointer"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handlePostSubmit} className="p-6 space-y-4 text-xs overflow-y-auto max-h-[75vh]">
-                <div className="space-y-1.5">
-                  <label className="block text-gray-700 font-bold">Article Title</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Matem College Academic Clearances Update"
-                    value={postForm.title}
-                    onChange={(e) => setPostForm({ ...postForm, title: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 text-sm font-medium text-navy-800"
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-gray-700 font-bold">Category</label>
+                  {/* Category Filter for Posts */}
+                  {activeTab === 'posts' && (
                     <select
-                      value={postForm.category}
-                      onChange={(e) => setPostForm({ ...postForm, category: e.target.value as Post['category'] })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 font-semibold"
+                      value={categoryPostFilter}
+                      onChange={(e) => setCategoryPostFilter(e.target.value as any)}
+                      className="border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
+                      id="posts-category-filter"
                     >
+                      <option value="all">All Categories</option>
                       <option value="School News">School News</option>
                       <option value="Academic Achievements">Academic Achievements</option>
                       <option value="Announcements">Announcements</option>
                       <option value="Notices">Notices</option>
                     </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-gray-700 font-bold">Publication Date</label>
-                    <input
-                      type="date"
-                      required
-                      value={postForm.date}
-                      onChange={(e) => setPostForm({ ...postForm, date: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 font-mono"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-gray-700 font-bold">Author Identity</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Dr. Ayo"
-                      value={postForm.author}
-                      onChange={(e) => setPostForm({ ...postForm, author: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500"
-                    />
-                  </div>
-                </div>
+                  )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-gray-700 font-bold">Cover Image URL</label>
-                    <input
-                      type="text"
-                      placeholder="Enter absolute image URL..."
-                      value={postForm.image.startsWith('data:image/') ? '' : postForm.image}
-                      onChange={(e) => setPostForm({ ...postForm, image: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 font-mono text-xs"
-                    />
-                    <div className="flex flex-wrap gap-1.5 mt-1">
-                      <button
-                        type="button"
-                        onClick={() => setPostForm({ ...postForm, image: 'https://picsum.photos/seed/science/800/600' })}
-                        className="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-0.5 rounded cursor-pointer"
-                      >
-                        Science Cover
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPostForm({ ...postForm, image: 'https://picsum.photos/seed/school/800/600' })}
-                        className="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-0.5 rounded cursor-pointer"
-                      >
-                        Campus Cover
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPostForm({ ...postForm, image: 'https://picsum.photos/seed/sports/800/600' })}
-                        className="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-0.5 rounded cursor-pointer"
-                      >
-                        Sports Cover
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="block text-gray-700 font-bold">Or Upload Cover Image File</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePostImageUpload}
-                      disabled={isUploadingPostImage}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-gold-500 cursor-pointer text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
-                    />
-                    {isUploadingPostImage && <p className="text-[10px] text-gray-400">Processing cover image...</p>}
-                    {postForm.image && (
-                      <div className="mt-1 flex items-center space-x-2">
-                        <span className="text-[10px] text-green-600 font-semibold">✓ Image set</span>
-                        {postForm.image.startsWith('data:image/') && (
-                          <span className="text-[9px] bg-gold-50 text-gold-700 px-1 py-0.2 rounded border border-gold-200 font-semibold">Uploaded File</span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => setPostForm({ ...postForm, image: '' })}
-                          className="text-[9px] text-red-600 hover:underline cursor-pointer font-bold"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {postForm.image && (
-                  <div className="space-y-1 bg-gray-50 p-2.5 rounded-xl border border-gray-100 max-w-sm">
-                    <span className="block text-gray-500 text-[10px] font-bold">Cover Image Preview:</span>
-                    <div className="relative aspect-video max-w-[200px] rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm">
-                      <img
-                        src={postForm.image}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-1.5">
-                  <label className="block text-gray-700 font-bold">Short Excerpt (Summary)</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Enter a 1-sentence quick summary for list previews..."
-                    value={postForm.excerpt}
-                    onChange={(e) => setPostForm({ ...postForm, excerpt: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 text-gray-700"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-gray-700 font-bold">Full Article Content</label>
-                  <textarea
-                    rows={6}
-                    required
-                    placeholder="Write detailed announcements or bulletins..."
-                    value={postForm.content}
-                    onChange={(e) => setPostForm({ ...postForm, content: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 leading-relaxed"
-                  />
-                </div>
-
-                <div className="pt-4 flex items-center justify-end space-x-3 border-t border-gray-100">
-                  <button
-                    type="button"
-                    onClick={() => setShowPostModal(false)}
-                    className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={formSubmitting}
-                    className="px-5 py-2.5 bg-navy-800 hover:bg-navy-950 text-white font-bold rounded-xl shadow transition-colors flex items-center cursor-pointer disabled:opacity-50"
-                  >
-                    {formSubmitting && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}
-                    {editingPost ? 'Update Post' : 'Publish Post'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* ======================================================= */}
-      {/* EVENTS MODAL (CREATE / EDIT) */}
-      {/* ======================================================= */}
-      <AnimatePresence>
-        {showEventModal && (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl max-w-xl w-full max-h-[90vh] overflow-hidden border border-gray-100"
-            >
-              <div className="bg-navy-800 text-white px-6 py-4 flex items-center justify-between">
-                <h3 className="font-serif text-lg font-bold">
-                  {editingEvent ? 'Edit School Event' : 'Schedule New School Event'}
-                </h3>
-                <button
-                  onClick={() => setShowEventModal(false)}
-                  className="p-1 rounded-lg hover:bg-navy-700 text-gray-300 hover:text-white transition-colors cursor-pointer"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleEventSubmit} className="p-6 space-y-4 text-xs overflow-y-auto max-h-[75vh]">
-                <div className="space-y-1.5">
-                  <label className="block text-gray-700 font-bold">Event Title</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Matem Sports Championship Finals"
-                    value={eventForm.title}
-                    onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 text-sm font-medium text-navy-800"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-gray-700 font-bold">Event Date</label>
-                    <input
-                      type="date"
-                      required
-                      value={eventForm.date}
-                      onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 font-mono"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-gray-700 font-bold">Event Time/Duration</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. 10:00 AM - 01:00 PM"
-                      value={eventForm.time}
-                      onChange={(e) => setEventForm({ ...eventForm, time: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-gray-700 font-bold">Event Category</label>
+                  {/* Category Filter for Events */}
+                  {activeTab === 'events' && (
                     <select
-                      value={eventForm.category}
-                      onChange={(e) => setEventForm({ ...eventForm, category: e.target.value as EventItem['category'] })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 font-semibold"
+                      value={categoryEventFilter}
+                      onChange={(e) => setCategoryEventFilter(e.target.value as any)}
+                      className="border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
+                      id="events-category-filter"
                     >
+                      <option value="all">All Event Categories</option>
                       <option value="academic">Academic</option>
                       <option value="sports">Sports</option>
                       <option value="cultural">Cultural</option>
                       <option value="other">Other</option>
                     </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-gray-700 font-bold">Venue/Location</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Main Auditorium, Matem College"
-                      value={eventForm.location}
-                      onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500"
-                    />
-                  </div>
+                  )}
                 </div>
+              </div>
 
-                <div className="space-y-1.5">
-                  <label className="block text-gray-700 font-bold">Detailed Event Description</label>
-                  <textarea
-                    rows={4}
-                    required
-                    placeholder="Enter detailed description regarding the scheduled event..."
-                    value={eventForm.description}
-                    onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-gold-500 leading-relaxed"
-                  />
-                </div>
+              {/* Data Table Views */}
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden" id="table-card">
+                {loading ? (
+                  <div className="py-20 flex flex-col justify-center items-center space-y-3" id="loading-table-state">
+                    <Loader2 className="w-8 h-8 text-slate-800 animate-spin" />
+                    <p className="text-slate-500 text-sm">Fetching fresh database updates...</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* INQUIRIES LIST VIEW */}
+                    {activeTab === 'inquiries' && (
+                      <div className="overflow-x-auto" id="inquiries-table-container">
+                        <table className="w-full text-left border-collapse" id="inquiries-table">
+                          <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200">
+                              <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">Student Details</th>
+                              <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">Purpose & Arm</th>
+                              <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">Message Summary</th>
+                              <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">Follow-Up Status</th>
+                              <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right font-mono">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {filteredInquiries.length === 0 ? (
+                              <tr id="empty-inquiries">
+                                <td colSpan={5} className="p-8 text-center text-slate-400 text-sm">
+                                  No inquiries found matching the search parameters.
+                                </td>
+                              </tr>
+                            ) : (
+                              filteredInquiries.map((inq) => (
+                                <tr key={inq.id} className="hover:bg-slate-50/50 transition-colors" id={`inquiry-row-${inq.id}`}>
+                                  <td className="p-4">
+                                    <div className="font-semibold text-slate-900 text-sm">{inq.name}</div>
+                                    <div className="text-xs text-slate-500 flex items-center space-x-1 mt-0.5">
+                                      <Mail className="w-3 h-3 text-slate-400" />
+                                      <span className="truncate max-w-[150px]">{inq.email}</span>
+                                    </div>
+                                    <div className="text-xs text-slate-500 flex items-center space-x-1 mt-0.5">
+                                      <Phone className="w-3 h-3 text-slate-400" />
+                                      <span>{inq.phone || 'No phone'}</span>
+                                    </div>
+                                  </td>
+                                  <td className="p-4">
+                                    <span className="inline-block px-2 py-0.5 rounded-md text-xs font-bold tracking-wide uppercase bg-slate-100 text-slate-700">
+                                      {inq.purpose}
+                                    </span>
+                                    <div className="text-xs font-medium text-slate-500 capitalize mt-1">
+                                      {inq.arm === 'private-school' ? 'Matem Private School' : 'Matem College'}
+                                    </div>
+                                  </td>
+                                  <td className="p-4 max-w-xs">
+                                    <p className="text-sm text-slate-600 line-clamp-2">{inq.message}</p>
+                                  </td>
+                                  <td className="p-4">
+                                    <select
+                                      value={inq.status}
+                                      onChange={(e) => handleInquiryStatusChange(inq.id, e.target.value as any)}
+                                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${
+                                        inq.status === 'resolved'
+                                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                          : inq.status === 'contacted'
+                                          ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                          : 'bg-rose-50 border-rose-200 text-rose-700'
+                                      }`}
+                                      id={`inquiry-status-select-${inq.id}`}
+                                    >
+                                      <option value="pending">● Pending</option>
+                                      <option value="contacted">● Contacted</option>
+                                      <option value="resolved">● Resolved</option>
+                                    </select>
+                                  </td>
+                                  <td className="p-4 text-right">
+                                    <button
+                                      onClick={() => openViewInquiry(inq)}
+                                      className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
+                                      title="Review Complete Details"
+                                      id={`view-inquiry-btn-${inq.id}`}
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
 
-                <div className="pt-4 flex items-center justify-end space-x-3 border-t border-gray-100">
-                  <button
-                    type="button"
-                    onClick={() => setShowEventModal(false)}
-                    className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={formSubmitting}
-                    className="px-5 py-2.5 bg-navy-800 hover:bg-navy-950 text-white font-bold rounded-xl shadow transition-colors flex items-center cursor-pointer disabled:opacity-50"
-                  >
-                    {formSubmitting && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}
-                    {editingEvent ? 'Update Event' : 'Schedule Event'}
-                  </button>
+                    {/* BLOG POSTS LIST VIEW */}
+                    {activeTab === 'posts' && (
+                      <div className="overflow-x-auto" id="posts-table-container">
+                        <table className="w-full text-left border-collapse" id="posts-table">
+                          <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200">
+                              <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">Cover & Article</th>
+                              <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">Category</th>
+                              <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">Publish Date</th>
+                              <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">Author</th>
+                              <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right font-mono">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {filteredPosts.length === 0 ? (
+                              <tr id="empty-posts">
+                                <td colSpan={5} className="p-8 text-center text-slate-400 text-sm">
+                                  No blog articles found. Click &quot;Create New&quot; to write one.
+                                </td>
+                              </tr>
+                            ) : (
+                              filteredPosts.map((post) => (
+                                <tr key={post.id} className="hover:bg-slate-50/50 transition-colors" id={`post-row-${post.id}`}>
+                                  <td className="p-4 flex items-center space-x-3">
+                                    <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 relative">
+                                      <img
+                                        src={post.image || 'https://picsum.photos/seed/school/800/600'}
+                                        alt=""
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="font-semibold text-slate-900 text-sm truncate max-w-sm">{post.title}</div>
+                                      <div className="text-xs text-slate-500 truncate max-w-sm mt-0.5">{post.excerpt || 'No excerpt'}</div>
+                                    </div>
+                                  </td>
+                                  <td className="p-4">
+                                    <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
+                                      {post.category}
+                                    </span>
+                                  </td>
+                                  <td className="p-4 text-sm text-slate-600 font-mono">
+                                    {post.date}
+                                  </td>
+                                  <td className="p-4 text-sm text-slate-600 font-medium">
+                                    {post.author || 'Admin'}
+                                  </td>
+                                  <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
+                                    <button
+                                      onClick={() => openEditModal(post)}
+                                      className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all inline-block"
+                                      title="Edit Article"
+                                      id={`edit-post-btn-${post.id}`}
+                                    >
+                                      <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDelete(post.id, 'posts')}
+                                      className="p-1.5 text-red-600 hover:text-red-950 hover:bg-red-50 rounded-lg transition-all inline-block"
+                                      title="Delete Article"
+                                      id={`delete-post-btn-${post.id}`}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* SCHOOL EVENTS LIST VIEW */}
+                    {activeTab === 'events' && (
+                      <div className="overflow-x-auto" id="events-table-container">
+                        <table className="w-full text-left border-collapse" id="events-table">
+                          <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200">
+                              <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">Event Showcase</th>
+                              <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 font-mono font-serif">Category</th>
+                              <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">Date & Time</th>
+                              <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">Location</th>
+                              <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right font-mono">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {filteredEvents.length === 0 ? (
+                              <tr id="empty-events">
+                                <td colSpan={5} className="p-8 text-center text-slate-400 text-sm">
+                                  No events scheduled. Click &quot;Create New&quot; to organize an event.
+                                </td>
+                              </tr>
+                            ) : (
+                              filteredEvents.map((evt) => (
+                                <tr key={evt.id} className="hover:bg-slate-50/50 transition-colors" id={`event-row-${evt.id}`}>
+                                  <td className="p-4 max-w-sm">
+                                    <div className="font-semibold text-slate-900 text-sm">{evt.title}</div>
+                                    <div className="text-xs text-slate-500 line-clamp-2 mt-0.5">{evt.description || 'No description'}</div>
+                                  </td>
+                                  <td className="p-4">
+                                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold tracking-wide uppercase ${
+                                      evt.category === 'academic' ? 'bg-blue-50 text-blue-700' :
+                                      evt.category === 'sports' ? 'bg-amber-50 text-amber-700' :
+                                      evt.category === 'cultural' ? 'bg-purple-50 text-purple-700' :
+                                      'bg-slate-100 text-slate-700'
+                                    }`}>
+                                      {evt.category}
+                                    </span>
+                                  </td>
+                                  <td className="p-4">
+                                    <div className="text-sm text-slate-700 font-medium flex items-center space-x-1.5">
+                                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                      <span>{evt.date}</span>
+                                    </div>
+                                    <div className="text-xs text-slate-500 mt-0.5 font-mono">
+                                      {evt.time || 'All Day'}
+                                    </div>
+                                  </td>
+                                  <td className="p-4 text-sm text-slate-600">
+                                    <div className="flex items-center space-x-1.5">
+                                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                      <span className="truncate max-w-[150px]">{evt.location || 'Main Campus'}</span>
+                                    </div>
+                                  </td>
+                                  <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
+                                    <button
+                                      onClick={() => openEditModal(evt)}
+                                      className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all inline-block"
+                                      title="Edit Event"
+                                      id={`edit-event-btn-${evt.id}`}
+                                    >
+                                      <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDelete(evt.id, 'events')}
+                                      className="p-1.5 text-red-600 hover:text-red-950 hover:bg-red-50 rounded-lg transition-all inline-block"
+                                      title="Delete Event"
+                                      id={`delete-event-btn-${evt.id}`}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </main>
+        </div>
+      )}
+
+      {/* 3. CRUD CREATE/EDIT & VIEW POPUP MODAL (motion/react backed) */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto" id="modal-backdrop">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-2xl overflow-hidden my-8"
+              id="modal-window"
+            >
+              {/* Modal Header */}
+              <div className="bg-slate-900 text-white p-6 flex items-center justify-between" id="modal-header">
+                <div>
+                  <h3 className="text-lg font-bold font-serif text-white tracking-wide" id="modal-title">
+                    {modalType === 'create_post' && 'Write Blog Article'}
+                    {modalType === 'edit_post' && 'Update Blog Article'}
+                    {modalType === 'create_event' && 'Schedule Campus Event'}
+                    {modalType === 'edit_event' && 'Update Campus Event'}
+                    {modalType === 'view_inquiry' && 'Inquiry Complete Record'}
+                  </h3>
+                  <p className="text-xs text-slate-300 font-mono uppercase mt-0.5">
+                    {activeTab} Management
+                  </p>
                 </div>
-              </form>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="p-1.5 hover:bg-white/15 text-slate-300 hover:text-white rounded-lg transition-all"
+                  id="modal-close-btn"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 max-h-[70vh] overflow-y-auto" id="modal-body">
+                {/* A. BLOG POSTS FORM */}
+                {(modalType === 'create_post' || modalType === 'edit_post') && (
+                  <form onSubmit={handlePostSubmit} className="space-y-4" id="post-form">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-600 uppercase block">Article Title *</label>
+                        <input
+                          type="text"
+                          required
+                          value={postTitle}
+                          onChange={(e) => setPostTitle(e.target.value)}
+                          placeholder="e.g. Science Bowl Champions!"
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-600 uppercase block">Category *</label>
+                        <select
+                          value={postCategory}
+                          onChange={(e) => setPostCategory(e.target.value as any)}
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+                        >
+                          <option value="School News">School News</option>
+                          <option value="Academic Achievements">Academic Achievements</option>
+                          <option value="Announcements">Announcements</option>
+                          <option value="Notices">Notices</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-600 uppercase block">Publish Date *</label>
+                        <input
+                          type="date"
+                          required
+                          value={postDate}
+                          onChange={(e) => setPostDate(e.target.value)}
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-600 uppercase block">Author</label>
+                        <input
+                          type="text"
+                          value={postAuthor}
+                          onChange={(e) => setPostAuthor(e.target.value)}
+                          placeholder="e.g. Principal's Office"
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 uppercase block">Cover Image URL</label>
+                      <input
+                        type="url"
+                        value={postImage}
+                        onChange={(e) => setPostImage(e.target.value)}
+                        placeholder="https://picsum.photos/seed/school/800/600"
+                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 uppercase block">Brief Excerpt</label>
+                      <input
+                        type="text"
+                        value={postExcerpt}
+                        onChange={(e) => setPostExcerpt(e.target.value)}
+                        placeholder="Provide a concise one-sentence summary for the preview feed..."
+                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 uppercase block">Full Article Content *</label>
+                      <textarea
+                        required
+                        rows={6}
+                        value={postContent}
+                        onChange={(e) => setPostContent(e.target.value)}
+                        placeholder="Write detailed announcements, news blogs, achievements description here..."
+                        className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                      />
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
+                      <button
+                        type="button"
+                        onClick={() => setIsModalOpen(false)}
+                        className="px-4 py-2 border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-100 text-sm font-semibold transition-all"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={submitLoading}
+                        className="px-6 py-2 bg-slate-950 hover:bg-slate-900 text-white rounded-xl text-sm font-semibold transition-all flex items-center space-x-2 disabled:opacity-50"
+                      >
+                        {submitLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Saving Post...</span>
+                          </>
+                        ) : (
+                          <span>Publish Article</span>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* B. EVENTS FORM */}
+                {(modalType === 'create_event' || modalType === 'edit_event') && (
+                  <form onSubmit={handleEventSubmit} className="space-y-4" id="event-form">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-600 uppercase block">Event Title *</label>
+                        <input
+                          type="text"
+                          required
+                          value={eventTitle}
+                          onChange={(e) => setEventTitle(e.target.value)}
+                          placeholder="e.g. Inter-House Sports Meet"
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-600 uppercase block">Category *</label>
+                        <select
+                          value={eventCategory}
+                          onChange={(e) => setEventCategory(e.target.value as any)}
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+                        >
+                          <option value="academic">Academic Assembly</option>
+                          <option value="sports">Sports Day / Games</option>
+                          <option value="cultural">Cultural Festival</option>
+                          <option value="other">Other Event</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-600 uppercase block">Scheduled Date *</label>
+                        <input
+                          type="date"
+                          required
+                          value={eventDate}
+                          onChange={(e) => setEventDate(e.target.value)}
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-600 uppercase block">Timing</label>
+                        <input
+                          type="text"
+                          value={eventTime}
+                          onChange={(e) => setEventTime(e.target.value)}
+                          placeholder="e.g. 08:00 AM - 02:00 PM"
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 uppercase block">Location Venue</label>
+                      <input
+                        type="text"
+                        value={eventLocation}
+                        onChange={(e) => setEventLocation(e.target.value)}
+                        placeholder="e.g. Main Auditorium, Matem College"
+                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 uppercase block">Description Details</label>
+                      <textarea
+                        rows={4}
+                        value={eventDescription}
+                        onChange={(e) => setEventDescription(e.target.value)}
+                        placeholder="Provide details about the rules, requirements, dress code, or general briefing for parents..."
+                        className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                      />
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
+                      <button
+                        type="button"
+                        onClick={() => setIsModalOpen(false)}
+                        className="px-4 py-2 border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-100 text-sm font-semibold transition-all"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={submitLoading}
+                        className="px-6 py-2 bg-slate-950 hover:bg-slate-900 text-white rounded-xl text-sm font-semibold transition-all flex items-center space-x-2 disabled:opacity-50"
+                      >
+                        {submitLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Scheduling...</span>
+                          </>
+                        ) : (
+                          <span>Publish Event</span>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* C. INQUIRY READ-ONLY DETAIL POPUP */}
+                {modalType === 'view_inquiry' && selectedInquiry && (
+                  <div className="space-y-6" id="inquiry-detail-view">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono tracking-widest uppercase text-slate-500 block">Status Level</span>
+                        <select
+                          value={selectedInquiry.status}
+                          onChange={(e) => handleInquiryStatusChange(selectedInquiry.id, e.target.value as any)}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold border ${
+                            selectedInquiry.status === 'resolved'
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                              : selectedInquiry.status === 'contacted'
+                              ? 'bg-amber-50 border-amber-200 text-amber-700'
+                              : 'bg-rose-50 border-rose-200 text-rose-700'
+                          }`}
+                        >
+                          <option value="pending">● Pending</option>
+                          <option value="contacted">● Contacted</option>
+                          <option value="resolved">● Resolved</option>
+                        </select>
+                      </div>
+                      
+                      <h4 className="text-lg font-bold text-slate-900">{selectedInquiry.name}</h4>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        <div className="flex items-center space-x-2 text-slate-600">
+                          <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                          <span className="break-all">{selectedInquiry.email}</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-slate-600">
+                          <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                          <span>{selectedInquiry.phone || 'No phone provided'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 text-sm border-t border-b border-slate-100 py-4">
+                      <div>
+                        <span className="text-xs font-mono text-slate-400 block uppercase">Target Campus / Arm</span>
+                        <span className="font-semibold text-slate-800 capitalize mt-0.5 inline-block">
+                          {selectedInquiry.arm === 'private-school' ? 'Matem Private School' : 'Matem College'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-mono text-slate-400 block uppercase">Purpose of Contact</span>
+                        <span className="font-semibold text-slate-800 capitalize mt-0.5 inline-block">
+                          {selectedInquiry.purpose}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <span className="text-xs font-mono text-slate-400 block uppercase">Submitted Message</span>
+                      <p className="bg-slate-50 p-4 rounded-xl text-slate-700 text-sm leading-relaxed border border-slate-150 whitespace-pre-wrap">
+                        {selectedInquiry.message}
+                      </p>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100 flex justify-end">
+                      <button
+                        onClick={() => setIsModalOpen(false)}
+                        className="px-6 py-2 bg-slate-950 hover:bg-slate-900 text-white text-sm font-semibold rounded-xl transition-all"
+                      >
+                        Done Reviewing
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-
-      <Footer />
-    </>
+    </div>
   );
 }
