@@ -1243,10 +1243,11 @@ export default function AdminPage() {
                                             />
                                             {/* Always visible, highly tapable delete button */}
                                             <button
-                                              onClick={() => {
-                                                if (confirm(`Are you sure you want to delete slide ${idx + 1}?`)) {
-                                                  handleDeleteCarouselImage(section.key, idx);
-                                                }
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleDeleteCarouselImage(section.key, idx);
                                               }}
                                               className="absolute top-1.5 right-1.5 p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg hover:scale-105 transition-all z-10"
                                               title="Delete Slide"
