@@ -8,8 +8,8 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+    if (!file || typeof file === 'string') {
+      return NextResponse.json({ error: 'No file uploaded or invalid file format' }, { status: 400 });
     }
 
     // Prepare clean unique file name
@@ -17,13 +17,34 @@ export async function POST(req: NextRequest) {
     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const filename = `${timestamp}-${sanitizedFileName}`;
 
+    // Read arrayBuffer ONCE at the start to prevent stream-already-read errors on fallback
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const isSupabaseConfigured = url && !url.includes("placeholder-project");
 
     if (isSupabaseConfigured) {
       try {
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        // Try to list buckets to verify connectivity and bucket existence
+        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+        if (bucketsError) {
+          console.warn('Failed to list Supabase buckets:', bucketsError);
+        } else {
+          const bucketExists = buckets?.some(b => b.name === 'school-media');
+          if (!bucketExists) {
+            console.log('Bucket "school-media" not found. Attempting to create it...');
+            const { error: createError } = await supabase.storage.createBucket('school-media', {
+              public: true,
+              allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'],
+            });
+            if (createError) {
+              console.warn('Failed to auto-create "school-media" bucket:', createError);
+            } else {
+              console.log('Successfully created "school-media" bucket!');
+            }
+          }
+        }
 
         // Upload to Supabase Storage
         const { data, error } = await supabase.storage
@@ -46,9 +67,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Fallback: Save locally to /public/uploads
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
     const uploadDir = path.join(process.cwd(), 'public', 'uploads');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
