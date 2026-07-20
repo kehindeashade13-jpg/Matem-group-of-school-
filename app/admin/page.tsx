@@ -3,11 +3,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { motion, AnimatePresence } from 'motion/react';
+import Link from 'next/link';
 import {
   Lock, LayoutDashboard, Newspaper, Calendar,
-  MessageSquare, Plus, Trash2, Edit2, Eye, CheckCircle,
+  MessageSquare, Plus, Trash2, Edit2, Eye, EyeOff, CheckCircle,
   X, RefreshCw, Loader2, Sparkles, UserCheck, AlertCircle,
-  Search, Filter, ExternalLink, LogOut, Mail, Phone, MapPin, Clock, BookOpen
+  Search, Filter, ExternalLink, LogOut, Mail, Phone, MapPin, Clock, BookOpen,
+  Home, ArrowLeft
 } from 'lucide-react';
 
 // Inline Supabase Initialization
@@ -57,6 +59,7 @@ export default function AdminPage() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
 
@@ -480,35 +483,59 @@ export default function AdminPage() {
                     <Lock className="w-5 h-5" />
                   </span>
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 transition-all text-sm"
+                    className="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 transition-all text-sm"
                     required
                     id="login-password-input"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(prev => !prev)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 focus:outline-none"
+                    title={showPassword ? "Hide password" : "Show password"}
+                    id="password-toggle-btn"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={authLoading}
-                className="w-full bg-slate-950 text-white font-medium py-3 px-4 rounded-xl hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-950 active:scale-98 transition-all flex items-center justify-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed text-sm"
-                id="login-submit-btn"
-              >
-                {authLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Verifying Credentials...</span>
-                  </>
-                ) : (
-                  <>
-                    <UserCheck className="w-5 h-5" />
-                    <span>Authorize & Access</span>
-                  </>
-                )}
-              </button>
+              <div className="flex flex-col space-y-3">
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="w-full bg-slate-950 text-white font-medium py-3 px-4 rounded-xl hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-950 active:scale-98 transition-all flex items-center justify-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed text-sm"
+                  id="login-submit-btn"
+                >
+                  {authLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Verifying Credentials...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="w-5 h-5" />
+                      <span>Authorize & Access</span>
+                    </>
+                  )}
+                </button>
+
+                <Link
+                  href="/"
+                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium py-3 px-4 rounded-xl transition-all flex items-center justify-center space-x-2 text-sm border border-slate-200"
+                  id="back-to-storefront-login-btn"
+                >
+                  <Home className="w-4 h-4 text-slate-600" />
+                  <span>Back to Storefront</span>
+                </Link>
+              </div>
 
               <div className="pt-2 text-center border-t border-slate-100" id="login-footer">
                 <p className="text-xs text-slate-400 font-mono">
@@ -534,54 +561,67 @@ export default function AdminPage() {
             </div>
 
             {/* Navigation Tabs */}
-            <nav className="flex-1 p-4 space-y-1.5" id="sidebar-nav">
-              <button
-                onClick={() => { setActiveTab('inquiries'); setSearchQuery(''); }}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                  activeTab === 'inquiries'
-                    ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
-                    : 'hover:bg-slate-800 text-slate-300 hover:text-white'
-                }`}
-                id="sidebar-btn-inquiries"
-              >
-                <div className="flex items-center space-x-3">
-                  <MessageSquare className="w-4 h-4 shrink-0" />
-                  <span>Student Inquiries</span>
-                </div>
-                {inquiries.filter(i => i.status === 'pending').length > 0 && (
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
-                    activeTab === 'inquiries' ? 'bg-slate-950 text-white' : 'bg-red-500 text-white'
-                  }`}>
-                    {inquiries.filter(i => i.status === 'pending').length}
-                  </span>
-                )}
-              </button>
+            <nav className="flex-1 p-4 flex flex-col justify-between" id="sidebar-nav">
+              <div className="space-y-1.5">
+                <button
+                  onClick={() => { setActiveTab('inquiries'); setSearchQuery(''); }}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    activeTab === 'inquiries'
+                      ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
+                      : 'hover:bg-slate-800 text-slate-300 hover:text-white'
+                  }`}
+                  id="sidebar-btn-inquiries"
+                >
+                  <div className="flex items-center space-x-3">
+                    <MessageSquare className="w-4 h-4 shrink-0" />
+                    <span>Student Inquiries</span>
+                  </div>
+                  {inquiries.filter(i => i.status === 'pending').length > 0 && (
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
+                      activeTab === 'inquiries' ? 'bg-slate-950 text-white' : 'bg-red-500 text-white'
+                    }`}>
+                      {inquiries.filter(i => i.status === 'pending').length}
+                    </span>
+                  )}
+                </button>
 
-              <button
-                onClick={() => { setActiveTab('posts'); setSearchQuery(''); }}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                  activeTab === 'posts'
-                    ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
-                    : 'hover:bg-slate-800 text-slate-300 hover:text-white'
-                }`}
-                id="sidebar-btn-posts"
-              >
-                <Newspaper className="w-4 h-4 shrink-0" />
-                <span>Blog Articles</span>
-              </button>
+                <button
+                  onClick={() => { setActiveTab('posts'); setSearchQuery(''); }}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    activeTab === 'posts'
+                      ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
+                      : 'hover:bg-slate-800 text-slate-300 hover:text-white'
+                  }`}
+                  id="sidebar-btn-posts"
+                >
+                  <Newspaper className="w-4 h-4 shrink-0" />
+                  <span>Blog Articles</span>
+                </button>
 
-              <button
-                onClick={() => { setActiveTab('events'); setSearchQuery(''); }}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                  activeTab === 'events'
-                    ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
-                    : 'hover:bg-slate-800 text-slate-300 hover:text-white'
-                }`}
-                id="sidebar-btn-events"
-              >
-                <Calendar className="w-4 h-4 shrink-0" />
-                <span>School Events</span>
-              </button>
+                <button
+                  onClick={() => { setActiveTab('events'); setSearchQuery(''); }}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    activeTab === 'events'
+                      ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
+                      : 'hover:bg-slate-800 text-slate-300 hover:text-white'
+                  }`}
+                  id="sidebar-btn-events"
+                >
+                  <Calendar className="w-4 h-4 shrink-0" />
+                  <span>School Events</span>
+                </button>
+              </div>
+
+              <div className="pt-4 border-t border-slate-800 mt-auto">
+                <Link
+                  href="/"
+                  className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 text-slate-300 hover:text-white transition-all"
+                  id="sidebar-btn-storefront"
+                >
+                  <Home className="w-4 h-4 shrink-0 text-amber-400" />
+                  <span>Exit to Storefront</span>
+                </Link>
+              </div>
             </nav>
 
             {/* Sidebar Footer with Session User and Logout */}
