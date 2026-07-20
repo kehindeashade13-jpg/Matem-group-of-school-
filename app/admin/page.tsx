@@ -274,17 +274,18 @@ export default function AdminPage() {
     setLoading(true);
     setFeedbackMsg(null);
     try {
-      const { data, error } = await supabase.storage
-        .from('school-media')
-        .upload(`carousel/${Date.now()}-${file.name}`, file);
+      const formData = new FormData();
+      formData.append('file', file);
 
-      if (error) {
-        throw error;
-      }
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
 
-      if (data) {
-        const { data: urlData } = supabase.storage.from('school-media').getPublicUrl(data.path);
-        const imageUrl = urlData.publicUrl;
+      const data = await res.json();
+
+      if (res.ok && data.url) {
+        const imageUrl = data.url;
 
         const stateKey = key === 'academicAchievement' 
           ? 'carouselAcademicAchievement' 
@@ -294,9 +295,9 @@ export default function AdminPage() {
         const updatedImages = [...currentImages, imageUrl];
         
         await handleSaveCarousel(key, updatedImages, carouselsData[stateKey]?.intervalSeconds || 5);
-        setFeedbackMsg({ type: 'success', text: 'Image uploaded to Supabase Storage and carousel updated successfully!' });
+        setFeedbackMsg({ type: 'success', text: 'Image uploaded and carousel updated successfully!' });
       } else {
-        throw new Error('Upload returned no data');
+        throw new Error(data.error || 'Failed to upload image file');
       }
     } catch (err: any) {
       console.error('Upload error:', err);
