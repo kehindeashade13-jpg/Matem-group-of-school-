@@ -49,6 +49,13 @@ export interface SchoolDatabase {
   carouselAcademicAchievement?: CarouselSettings;
   carouselGallery?: CarouselSettings;
   carouselEvent?: CarouselSettings;
+  carouselIctRobotics?: CarouselSettings;
+  carouselClassicScience?: CarouselSettings;
+  carouselPhysicalLibrary?: CarouselSettings;
+  carouselCrechePlayground?: CarouselSettings;
+  carouselModernClinic?: CarouselSettings;
+  carouselSportsGala?: CarouselSettings;
+  carouselGraduationGala?: CarouselSettings;
 }
 
 const DB_DIR = path.join(process.cwd(), 'data');
@@ -217,6 +224,66 @@ export function getDatabase(): SchoolDatabase {
     intervalSeconds: 5
   };
 
+  const defaultIctRobotics: CarouselSettings = {
+    images: [
+      'https://picsum.photos/seed/robotic_lab/1200/800',
+      'https://picsum.photos/seed/robotic_lab2/1200/800'
+    ],
+    intervalSeconds: 5
+  };
+
+  const defaultClassicScience: CarouselSettings = {
+    images: [
+      'https://picsum.photos/seed/chemistry/1200/800',
+      'https://picsum.photos/seed/chemistry2/1200/800'
+    ],
+    intervalSeconds: 5
+  };
+
+  const defaultPhysicalLibrary: CarouselSettings = {
+    images: [
+      'https://picsum.photos/seed/read_lib/1200/800',
+      'https://picsum.photos/seed/read_lib2/1200/800'
+    ],
+    intervalSeconds: 5
+  };
+
+  const defaultCrechePlayground: CarouselSettings = {
+    images: [
+      'https://picsum.photos/seed/playground/1200/800',
+      'https://picsum.photos/seed/playground2/1200/800'
+    ],
+    intervalSeconds: 5
+  };
+
+  const defaultModernClinic: CarouselSettings = {
+    images: [
+      'https://picsum.photos/seed/clinic/1200/800',
+      'https://picsum.photos/seed/clinic2/1200/800'
+    ],
+    intervalSeconds: 5
+  };
+
+  const defaultSportsGala: CarouselSettings = {
+    images: [
+      'https://picsum.photos/seed/sports_gala1/600/400',
+      'https://picsum.photos/seed/sports_gala2/600/400',
+      'https://picsum.photos/seed/sports_gala3/600/400',
+      'https://picsum.photos/seed/sports_gala4/600/400'
+    ],
+    intervalSeconds: 5
+  };
+
+  const defaultGraduationGala: CarouselSettings = {
+    images: [
+      'https://picsum.photos/seed/grad_gala1/600/400',
+      'https://picsum.photos/seed/grad_gala2/600/400',
+      'https://picsum.photos/seed/grad_gala3/600/400',
+      'https://picsum.photos/seed/grad_gala4/600/400'
+    ],
+    intervalSeconds: 5
+  };
+
   try {
     if (!fs.existsSync(DB_DIR)) {
       fs.mkdirSync(DB_DIR, { recursive: true });
@@ -232,7 +299,14 @@ export function getDatabase(): SchoolDatabase {
         carouselSecondary: defaultSecondary,
         carouselAcademicAchievement: defaultAcademicAchievement,
         carouselGallery: defaultGallery,
-        carouselEvent: defaultEvent
+        carouselEvent: defaultEvent,
+        carouselIctRobotics: defaultIctRobotics,
+        carouselClassicScience: defaultClassicScience,
+        carouselPhysicalLibrary: defaultPhysicalLibrary,
+        carouselCrechePlayground: defaultCrechePlayground,
+        carouselModernClinic: defaultModernClinic,
+        carouselSportsGala: defaultSportsGala,
+        carouselGraduationGala: defaultGraduationGala
       };
       fs.writeFileSync(DB_FILE, JSON.stringify(initialDb, null, 2), 'utf-8');
       return initialDb;
@@ -266,6 +340,34 @@ export function getDatabase(): SchoolDatabase {
       db.carouselEvent = defaultEvent;
       needsSave = true;
     }
+    if (!db.carouselIctRobotics) {
+      db.carouselIctRobotics = defaultIctRobotics;
+      needsSave = true;
+    }
+    if (!db.carouselClassicScience) {
+      db.carouselClassicScience = defaultClassicScience;
+      needsSave = true;
+    }
+    if (!db.carouselPhysicalLibrary) {
+      db.carouselPhysicalLibrary = defaultPhysicalLibrary;
+      needsSave = true;
+    }
+    if (!db.carouselCrechePlayground) {
+      db.carouselCrechePlayground = defaultCrechePlayground;
+      needsSave = true;
+    }
+    if (!db.carouselModernClinic) {
+      db.carouselModernClinic = defaultModernClinic;
+      needsSave = true;
+    }
+    if (!db.carouselSportsGala) {
+      db.carouselSportsGala = defaultSportsGala;
+      needsSave = true;
+    }
+    if (!db.carouselGraduationGala) {
+      db.carouselGraduationGala = defaultGraduationGala;
+      needsSave = true;
+    }
 
     if (needsSave) {
       fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');
@@ -282,7 +384,14 @@ export function getDatabase(): SchoolDatabase {
       carouselSecondary: defaultSecondary,
       carouselAcademicAchievement: defaultAcademicAchievement,
       carouselGallery: defaultGallery,
-      carouselEvent: defaultEvent
+      carouselEvent: defaultEvent,
+      carouselIctRobotics: defaultIctRobotics,
+      carouselClassicScience: defaultClassicScience,
+      carouselPhysicalLibrary: defaultPhysicalLibrary,
+      carouselCrechePlayground: defaultCrechePlayground,
+      carouselModernClinic: defaultModernClinic,
+      carouselSportsGala: defaultSportsGala,
+      carouselGraduationGala: defaultGraduationGala
     };
   }
 }

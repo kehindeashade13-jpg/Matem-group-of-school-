@@ -59,7 +59,8 @@ export default function CounselorWidget() {
         })
       });
 
-      const data = await response.json();
+      const textResp = await response.text();
+      const data = textResp ? JSON.parse(textResp) : {};
       if (response.ok && data.reply) {
         setMessages(prev => [...prev, { role: 'model', content: data.reply }]);
       } else {

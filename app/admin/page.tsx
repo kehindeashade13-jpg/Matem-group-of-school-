@@ -4,12 +4,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { motion, AnimatePresence } from 'motion/react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Lock, LayoutDashboard, Newspaper, Calendar,
   MessageSquare, Plus, Trash2, Edit2, Eye, EyeOff, CheckCircle,
   X, RefreshCw, Loader2, Sparkles, UserCheck, AlertCircle,
   Search, Filter, ExternalLink, LogOut, Mail, Phone, MapPin, Clock, BookOpen,
-  Home, ArrowLeft
+  Home, ArrowLeft, Images
 } from 'lucide-react';
 
 // Inline Supabase Initialization
@@ -64,9 +65,22 @@ export default function AdminPage() {
   const [authError, setAuthError] = useState('');
 
   // App state
-  const [activeTab, setActiveTab] = useState<'inquiries' | 'posts' | 'events'>('inquiries');
+  const [activeTab, setActiveTab] = useState<'inquiries' | 'posts' | 'events' | 'carousels'>('inquiries');
   const [loading, setLoading] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // Carousels State
+  const [carouselsData, setCarouselsData] = useState<any>({
+    carouselAcademicAchievement: { images: [], intervalSeconds: 5 },
+    carouselIctRobotics: { images: [], intervalSeconds: 5 },
+    carouselClassicScience: { images: [], intervalSeconds: 5 },
+    carouselPhysicalLibrary: { images: [], intervalSeconds: 5 },
+    carouselCrechePlayground: { images: [], intervalSeconds: 5 },
+    carouselModernClinic: { images: [], intervalSeconds: 5 },
+    carouselSportsGala: { images: [], intervalSeconds: 5 },
+    carouselGraduationGala: { images: [], intervalSeconds: 5 }
+  });
+  const [urlInputs, setUrlInputs] = useState<Record<string, string>>({});
 
   // Data states
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
@@ -149,6 +163,24 @@ export default function AdminPage() {
             .order('date', { ascending: false });
           if (error) throw error;
           if (isMounted) setEvents(data || []);
+        } else if (activeTab === 'carousels') {
+          const res = await fetch('/api/db');
+          if (res.ok) {
+            const text = await res.text();
+            const data = text ? JSON.parse(text) : {};
+            if (isMounted) {
+              setCarouselsData({
+                carouselAcademicAchievement: data.carouselAcademicAchievement || { images: [], intervalSeconds: 5 },
+                carouselIctRobotics: data.carouselIctRobotics || { images: [], intervalSeconds: 5 },
+                carouselClassicScience: data.carouselClassicScience || { images: [], intervalSeconds: 5 },
+                carouselPhysicalLibrary: data.carouselPhysicalLibrary || { images: [], intervalSeconds: 5 },
+                carouselCrechePlayground: data.carouselCrechePlayground || { images: [], intervalSeconds: 5 },
+                carouselModernClinic: data.carouselModernClinic || { images: [], intervalSeconds: 5 },
+                carouselSportsGala: data.carouselSportsGala || { images: [], intervalSeconds: 5 },
+                carouselGraduationGala: data.carouselGraduationGala || { images: [], intervalSeconds: 5 }
+              });
+            }
+          }
         }
       } catch (err: any) {
         console.error('Error fetching data:', err);
@@ -196,6 +228,114 @@ export default function AdminPage() {
     } catch (err) {
       console.error('Logout error:', err);
     }
+  };
+
+  // Carousel helper functions
+  const handleSaveCarousel = async (key: string, images: string[], intervalSeconds: number) => {
+    setLoading(true);
+    setFeedbackMsg(null);
+    try {
+      const response = await fetch('/api/db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_carousel',
+          payload: { key, images, intervalSeconds }
+        })
+      });
+
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : {};
+      if (response.ok && data.success) {
+        setFeedbackMsg({ type: 'success', text: 'Carousel updated successfully!' });
+        
+        // Map the action key back to the state key
+        const stateKey = key === 'academicAchievement' 
+          ? 'carouselAcademicAchievement' 
+          : `carousel${key.charAt(0).toUpperCase() + key.slice(1)}`;
+        
+        setCarouselsData((prev: any) => ({
+          ...prev,
+          [stateKey]: { images, intervalSeconds }
+        }));
+      } else {
+        throw new Error(data.error || 'Failed to update carousel');
+      }
+    } catch (error: any) {
+      console.error('Error updating carousel:', error);
+      setFeedbackMsg({ type: 'error', text: error.message || 'Error updating carousel' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUploadImage = async (key: string, file: File) => {
+    setLoading(true);
+    setFeedbackMsg(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : {};
+      
+      if (res.ok && data.url) {
+        const stateKey = key === 'academicAchievement' 
+          ? 'carouselAcademicAchievement' 
+          : `carousel${key.charAt(0).toUpperCase() + key.slice(1)}`;
+        
+        const currentImages = carouselsData[stateKey]?.images || [];
+        const updatedImages = [...currentImages, data.url];
+        
+        await handleSaveCarousel(key, updatedImages, carouselsData[stateKey]?.intervalSeconds || 5);
+        setFeedbackMsg({ type: 'success', text: 'Image uploaded and carousel updated successfully!' });
+      } else {
+        throw new Error(data.error || 'Failed to upload image file');
+      }
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      setFeedbackMsg({ type: 'error', text: err.message || 'Failed to upload image.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteCarouselImage = async (key: string, indexToDelete: number) => {
+    const stateKey = key === 'academicAchievement' 
+      ? 'carouselAcademicAchievement' 
+      : `carousel${key.charAt(0).toUpperCase() + key.slice(1)}`;
+    
+    const currentImages = carouselsData[stateKey]?.images || [];
+    const updatedImages = currentImages.filter((_: any, idx: number) => idx !== indexToDelete);
+    
+    await handleSaveCarousel(key, updatedImages, carouselsData[stateKey]?.intervalSeconds || 5);
+  };
+
+  const handleAddCarouselImageByLink = async (key: string, url: string) => {
+    if (!url) return;
+    const stateKey = key === 'academicAchievement' 
+      ? 'carouselAcademicAchievement' 
+      : `carousel${key.charAt(0).toUpperCase() + key.slice(1)}`;
+    
+    const currentImages = carouselsData[stateKey]?.images || [];
+    const updatedImages = [...currentImages, url];
+    
+    await handleSaveCarousel(key, updatedImages, carouselsData[stateKey]?.intervalSeconds || 5);
+  };
+
+  const handleChangeCarouselInterval = async (key: string, interval: number) => {
+    const stateKey = key === 'academicAchievement' 
+      ? 'carouselAcademicAchievement' 
+      : `carousel${key.charAt(0).toUpperCase() + key.slice(1)}`;
+    
+    const currentImages = carouselsData[stateKey]?.images || [];
+    
+    await handleSaveCarousel(key, currentImages, interval);
   };
 
   // Clear modal fields helper
@@ -610,6 +750,19 @@ export default function AdminPage() {
                   <Calendar className="w-4 h-4 shrink-0" />
                   <span>School Events</span>
                 </button>
+
+                <button
+                  onClick={() => { setActiveTab('carousels'); setSearchQuery(''); }}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    activeTab === 'carousels'
+                      ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
+                      : 'hover:bg-slate-800 text-slate-300 hover:text-white'
+                  }`}
+                  id="sidebar-btn-carousels"
+                >
+                  <Images className="w-4 h-4 shrink-0" />
+                  <span>Section Carousels</span>
+                </button>
               </div>
 
               <div className="pt-4 border-t border-slate-800 mt-auto">
@@ -710,72 +863,74 @@ export default function AdminPage() {
               </AnimatePresence>
 
               {/* Filtering & Searching Controls Bar */}
-              <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4" id="filters-bar">
-                <div className="relative flex-1" id="search-input-group">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                    <Search className="w-4 h-4" />
-                  </span>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={`Search by keyword in ${activeTab}...`}
-                    className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 bg-slate-50 focus:bg-white text-sm"
-                    id="search-input"
-                  />
+              {activeTab !== 'carousels' && (
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4" id="filters-bar">
+                  <div className="relative flex-1" id="search-input-group">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                      <Search className="w-4 h-4" />
+                    </span>
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder={`Search by keyword in ${activeTab}...`}
+                      className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 bg-slate-50 focus:bg-white text-sm"
+                      id="search-input"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2" id="filters-controls">
+                    <Filter className="w-4 h-4 text-slate-400 shrink-0" />
+                    
+                    {/* Category Filter for Inquiries */}
+                    {activeTab === 'inquiries' && (
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                        className="border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        id="inquiries-status-filter"
+                      >
+                        <option value="all">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="resolved">Resolved</option>
+                      </select>
+                    )}
+
+                    {/* Category Filter for Posts */}
+                    {activeTab === 'posts' && (
+                      <select
+                        value={categoryPostFilter}
+                        onChange={(e) => setCategoryPostFilter(e.target.value as any)}
+                        className="border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        id="posts-category-filter"
+                      >
+                        <option value="all">All Categories</option>
+                        <option value="School News">School News</option>
+                        <option value="Academic Achievements">Academic Achievements</option>
+                        <option value="Announcements">Announcements</option>
+                        <option value="Notices">Notices</option>
+                      </select>
+                    )}
+
+                    {/* Category Filter for Events */}
+                    {activeTab === 'events' && (
+                      <select
+                        value={categoryEventFilter}
+                        onChange={(e) => setCategoryEventFilter(e.target.value as any)}
+                        className="border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        id="events-category-filter"
+                      >
+                        <option value="all">All Event Categories</option>
+                        <option value="academic">Academic</option>
+                        <option value="sports">Sports</option>
+                        <option value="cultural">Cultural</option>
+                        <option value="other">Other</option>
+                      </select>
+                    )}
+                  </div>
                 </div>
-
-                <div className="flex items-center gap-2" id="filters-controls">
-                  <Filter className="w-4 h-4 text-slate-400 shrink-0" />
-                  
-                  {/* Category Filter for Inquiries */}
-                  {activeTab === 'inquiries' && (
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value as any)}
-                      className="border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
-                      id="inquiries-status-filter"
-                    >
-                      <option value="all">All Statuses</option>
-                      <option value="pending">Pending</option>
-                      <option value="contacted">Contacted</option>
-                      <option value="resolved">Resolved</option>
-                    </select>
-                  )}
-
-                  {/* Category Filter for Posts */}
-                  {activeTab === 'posts' && (
-                    <select
-                      value={categoryPostFilter}
-                      onChange={(e) => setCategoryPostFilter(e.target.value as any)}
-                      className="border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
-                      id="posts-category-filter"
-                    >
-                      <option value="all">All Categories</option>
-                      <option value="School News">School News</option>
-                      <option value="Academic Achievements">Academic Achievements</option>
-                      <option value="Announcements">Announcements</option>
-                      <option value="Notices">Notices</option>
-                    </select>
-                  )}
-
-                  {/* Category Filter for Events */}
-                  {activeTab === 'events' && (
-                    <select
-                      value={categoryEventFilter}
-                      onChange={(e) => setCategoryEventFilter(e.target.value as any)}
-                      className="border border-slate-200 rounded-xl px-3 py-1.5 bg-slate-50 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
-                      id="events-category-filter"
-                    >
-                      <option value="all">All Event Categories</option>
-                      <option value="academic">Academic</option>
-                      <option value="sports">Sports</option>
-                      <option value="cultural">Cultural</option>
-                      <option value="other">Other</option>
-                    </select>
-                  )}
-                </div>
-              </div>
+              )}
 
               {/* Data Table Views */}
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden" id="table-card">
@@ -892,10 +1047,12 @@ export default function AdminPage() {
                                 <tr key={post.id} className="hover:bg-slate-50/50 transition-colors" id={`post-row-${post.id}`}>
                                   <td className="p-4 flex items-center space-x-3">
                                     <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 relative">
-                                      <img
+                                      <Image
                                         src={post.image || 'https://picsum.photos/seed/school/800/600'}
                                         alt=""
-                                        className="w-full h-full object-cover"
+                                        fill
+                                        className="object-cover"
+                                        referrerPolicy="no-referrer"
                                       />
                                     </div>
                                     <div className="min-w-0">
@@ -1015,6 +1172,137 @@ export default function AdminPage() {
                             )}
                           </tbody>
                         </table>
+                      </div>
+                    )}
+
+                    {activeTab === 'carousels' && (
+                      <div className="p-6 space-y-8" id="carousels-management-panel">
+                        <div className="border-b border-slate-100 pb-4">
+                          <h2 className="text-xl font-bold font-serif text-slate-800">Section Carousels Manager</h2>
+                          <p className="text-xs text-slate-500 mt-1">
+                            Upload, delete, and manage rotating images for all main school slides and gallery highlights.
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8" id="carousels-grid">
+                          {[
+                            { key: 'academicAchievement', stateKey: 'carouselAcademicAchievement', label: 'Academic Achievement', description: 'Rotating images for Academic Achievement slide on the home page' },
+                            { key: 'ictRobotics', stateKey: 'carouselIctRobotics', label: 'ICT & Robotics Lab', description: 'Rotating images for ICT and Robotics Lab slide on the home page' },
+                            { key: 'classicScience', stateKey: 'carouselClassicScience', label: 'Classic Science Laboratory', description: 'Rotating images for Classic Science Laboratory slide on the home page' },
+                            { key: 'physicalLibrary', stateKey: 'carouselPhysicalLibrary', label: 'Physical & Digital Library', description: 'Rotating images for Physical and Digital Library slide on the home page' },
+                            { key: 'crechePlayground', stateKey: 'carouselCrechePlayground', label: 'Creche & Nursery Playground', description: 'Rotating images for Creche and Nursery Playground slide on the home page' },
+                            { key: 'modernClinic', stateKey: 'carouselModernClinic', label: 'Modern Clinic Office', description: 'Rotating images for Modern Clinic Office slide on the home page' },
+                            { key: 'sportsGala', stateKey: 'carouselSportsGala', label: 'Matem Interhouse Sport Gala', description: 'Rotating images for Matem Interhouse Sport Gala in the past highlights' },
+                            { key: 'graduationGala', stateKey: 'carouselGraduationGala', label: 'Matem Graduation Gala', description: 'Rotating images for Matem Graduation Gala in the past highlights' }
+                          ].map((section) => {
+                            const currentData = carouselsData[section.stateKey] || { images: [], intervalSeconds: 5 };
+                            const currentImages = currentData.images || [];
+                            const currentInterval = currentData.intervalSeconds || 5;
+                            const inputVal = urlInputs[section.key] || '';
+
+                            return (
+                              <div key={section.key} className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4 hover:shadow-md transition-all flex flex-col justify-between" id={`carousel-card-${section.key}`}>
+                                <div className="space-y-3">
+                                  <div className="flex justify-between items-start gap-4">
+                                    <div>
+                                      <h3 className="font-serif font-bold text-base text-slate-800">{section.label}</h3>
+                                      <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{section.description}</p>
+                                    </div>
+                                    <div className="flex items-center space-x-1.5 shrink-0 bg-white border border-slate-200 px-2.5 py-1 rounded-xl text-xs font-semibold">
+                                      <span className="text-slate-500 font-normal">Interval:</span>
+                                      <input
+                                        type="number"
+                                        min="1"
+                                        max="60"
+                                        value={currentInterval}
+                                        onChange={(e) => handleChangeCarouselInterval(section.key, parseInt(e.target.value) || 5)}
+                                        className="w-10 text-center font-mono focus:outline-none text-slate-800 focus:ring-1 focus:ring-slate-900 rounded bg-transparent font-medium"
+                                        title="Rotation Interval (seconds)"
+                                      />
+                                      <span className="text-slate-400 font-mono text-[10px]">sec</span>
+                                    </div>
+                                  </div>
+
+                                  {/* Thumbnail Preview Area */}
+                                  <div>
+                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 font-mono">Current Images ({currentImages.length})</h4>
+                                    {currentImages.length === 0 ? (
+                                      <div className="bg-white border border-dashed border-slate-200 rounded-xl p-6 text-center text-xs text-slate-400 font-sans">
+                                        No images configured. Upload a file or add a URL below.
+                                      </div>
+                                    ) : (
+                                      <div className="grid grid-cols-4 gap-3 bg-white p-3 rounded-xl border border-slate-200 max-h-48 overflow-y-auto">
+                                        {currentImages.map((imgUrl: string, idx: number) => (
+                                          <div key={idx} className="relative aspect-video group rounded-lg overflow-hidden border border-slate-100 bg-slate-50 shadow-sm">
+                                            <img
+                                              src={imgUrl}
+                                              alt=""
+                                              className="w-full h-full object-cover"
+                                            />
+                                            <button
+                                              onClick={() => handleDeleteCarouselImage(section.key, idx)}
+                                              className="absolute top-1 right-1 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                              title="Delete Image"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="space-y-3 pt-3 border-t border-slate-200/60">
+                                  {/* Option 1: File Upload */}
+                                  <div>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5 font-mono">Option 1: Upload Image File</span>
+                                    <label className="w-full flex items-center justify-center space-x-2 border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all">
+                                      <Plus className="w-4 h-4 text-slate-500" />
+                                      <span>Choose & Upload Image File</span>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          if (e.target.files?.[0]) {
+                                            handleUploadImage(section.key, e.target.files[0]);
+                                          }
+                                        }}
+                                      />
+                                    </label>
+                                  </div>
+
+                                  {/* Option 2: Add by URL */}
+                                  <div>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5 font-mono">Option 2: Add by External Link</span>
+                                    <div className="flex space-x-2">
+                                      <input
+                                        type="text"
+                                        placeholder="Paste image URL here..."
+                                        value={inputVal}
+                                        onChange={(e) => setUrlInputs(prev => ({ ...prev, [section.key]: e.target.value }))}
+                                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-slate-950"
+                                      />
+                                      <button
+                                        onClick={() => {
+                                          if (inputVal.trim()) {
+                                            handleAddCarouselImageByLink(section.key, inputVal.trim());
+                                            setUrlInputs(prev => ({ ...prev, [section.key]: '' }));
+                                          }
+                                        }}
+                                        className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center justify-center transition-all shrink-0"
+                                        title="Add Image URL"
+                                      >
+                                        <Plus className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </>

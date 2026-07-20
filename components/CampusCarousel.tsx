@@ -9,13 +9,15 @@ interface CampusCarouselProps {
   intervalSeconds?: number;
   aspectRatio?: string;
   altText?: string;
+  isHeroBackground?: boolean;
 }
 
 export default function CampusCarousel({
   images,
   intervalSeconds = 5,
   aspectRatio = "aspect-video",
-  altText = "Campus Slide"
+  altText = "Campus Slide",
+  isHeroBackground = false
 }: CampusCarouselProps) {
   const [index, setIndex] = useState(0);
 
@@ -29,14 +31,14 @@ export default function CampusCarousel({
 
   if (!images || images.length === 0) {
     return (
-      <div className={`w-full h-full min-h-[250px] bg-navy-50 flex items-center justify-center text-gray-400 text-xs font-sans rounded-xl border`}>
+      <div className={`w-full h-full min-h-[250px] bg-navy-50 flex items-center justify-center text-gray-400 text-xs font-sans ${isHeroBackground ? '' : 'rounded-xl border'}`}>
         No images available
       </div>
     );
   }
 
   return (
-    <div className={`relative w-full h-full overflow-hidden rounded-2xl shadow-premium ${aspectRatio} bg-navy-900`}>
+    <div className={`relative w-full h-full overflow-hidden ${isHeroBackground ? '' : 'rounded-2xl shadow-premium'} ${aspectRatio} bg-navy-900`}>
       <AnimatePresence mode="wait">
         <motion.div
           key={index}
@@ -46,17 +48,18 @@ export default function CampusCarousel({
           transition={{ duration: 0.8, ease: "easeInOut" }}
           className="absolute inset-0 w-full h-full"
         >
-          <img
+          <Image
             src={images[index]}
             alt={`${altText} - Slide ${index + 1}`}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
             referrerPolicy="no-referrer"
           />
         </motion.div>
       </AnimatePresence>
 
       {/* Progress Dots */}
-      {images.length > 1 && (
+      {images.length > 1 && !isHeroBackground && (
         <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-1.5 z-10">
           {images.map((_, idx) => (
             <button

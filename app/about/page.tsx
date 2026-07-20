@@ -16,15 +16,15 @@ const TEAM = [
     img: "/images/founder_portrait.jpg"
   },
   {
-    name: "Mr. Samuel Okon",
+    name: "Mrs. Olatunbosun Oluwayemisi",
     role: "Principal, Matem College",
-    bio: "An outstanding educational leader and scientist, Mr. Okon oversees secondary administration, focusing on exam preparations (WAEC/NECO/JAMB) and robotic science modules.",
+    bio: "An outstanding educational leader and administrator, Mrs. Oluwayemisi oversees secondary administration, focusing on exam preparations (WAEC/NECO/JAMB), modern sciences, and academic discipline.",
     img: "https://picsum.photos/seed/principal/400/400"
   },
   {
-    name: "Mrs. Grace Bello",
-    role: "Headmistress, Matem Private School",
-    bio: "A specialist in early childhood education. Mrs. Bello coordinates our nursery and primary curriculums, integrating critical thinking and visual programming methods.",
+    name: "Mrs. Gbemisola Komolafe",
+    role: "Head Teacher, Matem Private School",
+    bio: "A specialist in early childhood education. Mrs. Komolafe coordinates our nursery and primary curriculums, integrating critical thinking, moral development, and innovative learning methods.",
     img: "https://picsum.photos/seed/headmistress/400/400"
   }
 ];

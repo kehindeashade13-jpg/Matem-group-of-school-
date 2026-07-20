@@ -91,7 +91,8 @@ export default function AdmissionsPage() {
         })
       });
 
-      const data = await response.json();
+      const textResp = await response.text();
+      const data = textResp ? JSON.parse(textResp) : {};
       if (response.ok && data.success) {
         setSuccess(true);
         setFormData({

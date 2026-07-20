@@ -68,7 +68,14 @@ export async function GET() {
         carouselSecondary: db.carouselSecondary,
         carouselAcademicAchievement: db.carouselAcademicAchievement,
         carouselGallery: db.carouselGallery,
-        carouselEvent: db.carouselEvent
+        carouselEvent: db.carouselEvent,
+        carouselIctRobotics: db.carouselIctRobotics,
+        carouselClassicScience: db.carouselClassicScience,
+        carouselPhysicalLibrary: db.carouselPhysicalLibrary,
+        carouselCrechePlayground: db.carouselCrechePlayground,
+        carouselModernClinic: db.carouselModernClinic,
+        carouselSportsGala: db.carouselSportsGala,
+        carouselGraduationGala: db.carouselGraduationGala
       });
     } catch (err) {
       console.error("Supabase API error in GET /api/db:", err);
@@ -390,6 +397,20 @@ export async function POST(req: NextRequest) {
           db.carouselGallery = carouselData;
         } else if (key === 'event') {
           db.carouselEvent = carouselData;
+        } else if (key === 'ictRobotics') {
+          db.carouselIctRobotics = carouselData;
+        } else if (key === 'classicScience') {
+          db.carouselClassicScience = carouselData;
+        } else if (key === 'physicalLibrary') {
+          db.carouselPhysicalLibrary = carouselData;
+        } else if (key === 'crechePlayground') {
+          db.carouselCrechePlayground = carouselData;
+        } else if (key === 'modernClinic') {
+          db.carouselModernClinic = carouselData;
+        } else if (key === 'sportsGala') {
+          db.carouselSportsGala = carouselData;
+        } else if (key === 'graduationGala') {
+          db.carouselGraduationGala = carouselData;
         } else {
           db.carousel = carouselData;
         }

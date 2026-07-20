@@ -27,7 +27,8 @@ export default function NewsPage() {
       try {
         const response = await fetch('/api/db');
         if (response.ok) {
-          const data = await response.json();
+          const text = await response.text();
+          const data = text ? JSON.parse(text) : {};
           setPosts(data.posts || []);
 
           if (data.carouselAcademicAchievement && data.carouselAcademicAchievement.images?.length > 0) {

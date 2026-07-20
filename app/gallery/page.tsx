@@ -27,14 +27,24 @@ const GALLERY_PHOTOS = [
 
 const PAST_HIGHLIGHTS = [
   {
-    title: "Annual Science & Tech Fair 2025",
-    desc: "A massive, state-level primary/secondary exhibition where our robotics class showcased standard Python sensor codes and autonomous maze-solver models.",
-    img: "https://picsum.photos/seed/tech_fair/600/400"
+    title: "Matem Interhouse Sport Gala",
+    desc: "An incredible termly inter-house athletic event featuring competitive track and field games, marching parades, physical wellness challenges, and trophy awards for the champion house.",
+    images: [
+      "https://picsum.photos/seed/sports_gala1/600/400",
+      "https://picsum.photos/seed/sports_gala2/600/400",
+      "https://picsum.photos/seed/sports_gala3/600/400",
+      "https://picsum.photos/seed/sports_gala4/600/400"
+    ]
   },
   {
-    title: "Matem College 2025 Graduation Gala",
-    desc: "Celebrating our graduating SSS 3 class with 100% credit pass records, awarding medals for logical writing, robotic sciences, and athletic discipline.",
-    img: "https://picsum.photos/seed/grad_gala2/600/400"
+    title: "Matem Graduation Gala",
+    desc: "Celebrating our graduating primary and college classes with 100% credit pass achievements, administrative honor rolls, traditional dance parades, and formal valedictory speeches.",
+    images: [
+      "https://picsum.photos/seed/grad_gala1/600/400",
+      "https://picsum.photos/seed/grad_gala2/600/400",
+      "https://picsum.photos/seed/grad_gala3/600/400",
+      "https://picsum.photos/seed/grad_gala4/600/400"
+    ]
   }
 ];
 
@@ -47,13 +57,18 @@ export default function GalleryPage() {
   const [galleryInterval, setGalleryInterval] = useState(5);
   const [eventImages, setEventImages] = useState<string[]>([]);
   const [eventInterval, setEventInterval] = useState(5);
+  const [sportsGalaImages, setSportsGalaImages] = useState<string[]>([]);
+  const [sportsGalaInterval, setSportsGalaInterval] = useState(5);
+  const [gradGalaImages, setGradGalaImages] = useState<string[]>([]);
+  const [gradGalaInterval, setGradGalaInterval] = useState(5);
 
   useEffect(() => {
     const fetchEventsAndCarousels = async () => {
       try {
         const response = await fetch('/api/db');
         if (response.ok) {
-          const data = await response.json();
+          const text = await response.text();
+          const data = text ? JSON.parse(text) : {};
           setEvents(data.events || []);
           
           if (data.carouselGallery && data.carouselGallery.images?.length > 0) {
@@ -63,6 +78,14 @@ export default function GalleryPage() {
           if (data.carouselEvent && data.carouselEvent.images?.length > 0) {
             setEventImages(data.carouselEvent.images);
             setEventInterval(data.carouselEvent.intervalSeconds || 5);
+          }
+          if (data.carouselSportsGala && data.carouselSportsGala.images?.length > 0) {
+            setSportsGalaImages(data.carouselSportsGala.images);
+            setSportsGalaInterval(data.carouselSportsGala.intervalSeconds || 5);
+          }
+          if (data.carouselGraduationGala && data.carouselGraduationGala.images?.length > 0) {
+            setGradGalaImages(data.carouselGraduationGala.images);
+            setGradGalaInterval(data.carouselGraduationGala.intervalSeconds || 5);
           }
         }
       } catch (error) {
@@ -311,12 +334,11 @@ export default function GalleryPage() {
               <div key={idx} className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-premium group flex flex-col justify-between">
                 <div>
                   <div className="relative h-60 overflow-hidden">
-                    <Image
-                      src={high.img}
-                      alt={high.title}
-                      fill
-                      className="object-cover"
-                      referrerPolicy="no-referrer"
+                    <CampusCarousel
+                      images={idx === 0 ? (sportsGalaImages.length > 0 ? sportsGalaImages : high.images) : (gradGalaImages.length > 0 ? gradGalaImages : high.images)}
+                      intervalSeconds={idx === 0 ? sportsGalaInterval : gradGalaInterval}
+                      altText={high.title}
+                      aspectRatio="h-full w-full"
                     />
                   </div>
                   <div className="p-6 sm:p-8 space-y-3">
@@ -353,10 +375,12 @@ export default function GalleryPage() {
               <X className="h-6 w-6" />
             </button>
             <div className="relative max-w-5xl max-h-[80vh] w-full h-full flex items-center justify-center">
-              <img
+              <Image
                 src={selectedPhoto}
                 alt="Enlarged Campus Photo"
-                className="max-w-full max-h-full object-contain rounded-lg border border-white/20 shadow-premium"
+                fill
+                className="object-contain rounded-lg border border-white/20 shadow-premium"
+                referrerPolicy="no-referrer"
               />
             </div>
           </motion.div>

@@ -91,7 +91,8 @@ export default function AcademicsPage() {
       try {
         const response = await fetch('/api/db');
         if (response.ok) {
-          const data = await response.json();
+          const text = await response.text();
+          const data = text ? JSON.parse(text) : {};
           if (data.carouselNurseryPrimary && data.carouselNurseryPrimary.images?.length > 0) {
             setNurseryPrimaryImages(data.carouselNurseryPrimary.images);
             if (data.carouselNurseryPrimary.intervalSeconds) {

@@ -6,24 +6,92 @@ import Image from 'next/image';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import WhatsAppButton from '@/components/WhatsAppButton';
-import { motion } from 'motion/react';
+import CampusCarousel from '@/components/CampusCarousel';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowRight, Award, Users, BookOpen, Clock, 
-  Calendar, Newspaper, CheckCircle2, ChevronRight, Play, Quote, GraduationCap 
+  Calendar, Newspaper, CheckCircle2, ChevronRight, ChevronLeft, Play, Quote, GraduationCap 
 } from 'lucide-react';
 import { BlogPost, EventItem } from '@/lib/db';
 
-const HERO_IMAGES = [
-  'https://picsum.photos/seed/learn/1920/1080',
-  'https://picsum.photos/seed/playground/1920/1080',
-  'https://picsum.photos/seed/chemistry/1920/1080'
+const HERO_SLIDES = [
+  {
+    id: 1,
+    badge: "★ Admitting for 2026/2027 Academic Session",
+    title: "Nurturing Excellence",
+    subtitle: "From Nursery to Secondary",
+    description: "Welcome to Matem Schools, where we empower tomorrow's innovators, scientists, and leaders under a single supportive and highly disciplined academic system.",
+    image: "https://picsum.photos/seed/learn/1920/1080",
+    ctaText: "Apply Now",
+    ctaLink: "/admissions"
+  },
+  {
+    id: 2,
+    badge: "🏆 Academic Excellence",
+    title: "Academic Achievement",
+    subtitle: "Grounding Pupils in Distinction",
+    description: "Our high-performing elementary and college curriculums ensure outstanding WAEC, NECO, and JAMB success year after year.",
+    image: "https://picsum.photos/seed/achievement1/1920/1080",
+    ctaText: "Explore Academics",
+    ctaLink: "/academics"
+  },
+  {
+    id: 3,
+    badge: "💻 Tech-Forward Education",
+    title: "ICT & Robotic Lab",
+    subtitle: "Shaping Future Tech Leaders",
+    description: "Equipped with modular robotics kits and computational setups to master Python, Scratch programming, and critical logic early.",
+    image: "https://picsum.photos/seed/robotic_lab/1920/1080",
+    ctaText: "Explore Facilities",
+    ctaLink: "/about#facilities"
+  },
+  {
+    id: 4,
+    badge: "🧪 Scientific Curiosity",
+    title: "Classic Science Laboratory",
+    subtitle: "Physics, Chemistry & Biology",
+    description: "Separate, standard analytical chemistry, physics, and biology laboratories designed to turn theories into discoveries safely.",
+    image: "https://picsum.photos/seed/chemistry/1920/1080",
+    ctaText: "Our Facilities",
+    ctaLink: "/about#facilities"
+  },
+  {
+    id: 5,
+    badge: "📚 Knowledge Hubs",
+    title: "Physical & Digital Library",
+    subtitle: "Spacious & Well-Stocked",
+    description: "Thousands of text resources paired with modern digital search terminals for both primary and college scholars.",
+    image: "https://picsum.photos/seed/read_lib/1920/1080",
+    ctaText: "Explore Campus",
+    ctaLink: "/gallery"
+  },
+  {
+    id: 6,
+    badge: "🧸 Early Developmental Foundations",
+    title: "Creche & Nursery Playground",
+    subtitle: "Safe, Cushioned Learning Play",
+    description: "Equipped with educational sensory toys, swings, slides, and supportive structures to ground physical and social agility.",
+    image: "https://picsum.photos/seed/playground/1920/1080",
+    ctaText: "Nursery Curriculum",
+    ctaLink: "/academics#private-school"
+  },
+  {
+    id: 7,
+    badge: "🩺 Health & Student Welfare",
+    title: "Modern Clinic Office",
+    subtitle: "Registered Nurses on Standby",
+    description: "A fully stocked primary on-campus medical center ensuring immediate first aid and the highest clinical welfare standard.",
+    image: "https://picsum.photos/seed/clinic/1920/1080",
+    ctaText: "Contact Us",
+    ctaLink: "/contact"
+  }
 ];
 
 export default function HomePage() {
   const [dbData, setDbData] = useState<{ posts: BlogPost[]; events: EventItem[] } | null>(null);
   const [heroIndex, setHeroIndex] = useState(0);
-  const [carouselImages, setCarouselImages] = useState<string[]>(HERO_IMAGES);
-  const [carouselInterval, setCarouselInterval] = useState(5000);
+  const [carouselImages, setCarouselImages] = useState<string[]>([]);
+  const [carouselInterval, setCarouselInterval] = useState(6000);
 
   useEffect(() => {
     // Fetch latest news and events
@@ -31,12 +99,11 @@ export default function HomePage() {
       try {
         const response = await fetch('/api/db');
         if (response.ok) {
-          const data = await response.json();
+          const text = await response.text();
+          const data = text ? JSON.parse(text) : {};
           setDbData(data);
-          if (data.carousel) {
-            if (data.carousel.images && data.carousel.images.length > 0) {
-              setCarouselImages(data.carousel.images);
-            }
+          if (data.carousel && data.carousel.images && data.carousel.images.length > 0) {
+            setCarouselImages(data.carousel.images);
             if (data.carousel.intervalSeconds) {
               setCarouselInterval(data.carousel.intervalSeconds * 1000);
             }
@@ -49,16 +116,46 @@ export default function HomePage() {
     fetchDb();
   }, []);
 
+  const handlePrev = () => {
+    setHeroIndex(prev => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+  };
+
+  const handleNext = () => {
+    setHeroIndex(prev => (prev + 1) % HERO_SLIDES.length);
+  };
+
   useEffect(() => {
-    if (carouselImages.length <= 1) return;
-    const interval = setInterval(() => {
-      setHeroIndex(prev => (prev + 1) % carouselImages.length);
+    const timer = setTimeout(() => {
+      handleNext();
     }, carouselInterval);
-    return () => clearInterval(interval);
-  }, [carouselImages, carouselInterval]);
+    return () => clearTimeout(timer);
+  }, [heroIndex, carouselInterval]);
 
   const latestPosts = dbData?.posts?.slice(0, 3) || [];
   const upcomingEvents = dbData?.events?.slice(0, 3) || [];
+
+  const getSlideImages = (index: number) => {
+    if (!dbData) return [HERO_SLIDES[index].image];
+    const data = dbData as any;
+    switch (index) {
+      case 0:
+        return carouselImages.length > 0 ? carouselImages : [HERO_SLIDES[0].image];
+      case 1:
+        return data.carouselAcademicAchievement?.images?.length > 0 ? data.carouselAcademicAchievement.images : [HERO_SLIDES[1].image];
+      case 2:
+        return data.carouselIctRobotics?.images?.length > 0 ? data.carouselIctRobotics.images : [HERO_SLIDES[2].image];
+      case 3:
+        return data.carouselClassicScience?.images?.length > 0 ? data.carouselClassicScience.images : [HERO_SLIDES[3].image];
+      case 4:
+        return data.carouselPhysicalLibrary?.images?.length > 0 ? data.carouselPhysicalLibrary.images : [HERO_SLIDES[4].image];
+      case 5:
+        return data.carouselCrechePlayground?.images?.length > 0 ? data.carouselCrechePlayground.images : [HERO_SLIDES[5].image];
+      case 6:
+        return data.carouselModernClinic?.images?.length > 0 ? data.carouselModernClinic.images : [HERO_SLIDES[6].image];
+      default:
+        return [HERO_SLIDES[index].image];
+    }
+  };
 
   return (
     <>
@@ -66,50 +163,97 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section id="hero-section" className="relative h-[85vh] flex items-center justify-center overflow-hidden bg-navy-950">
-        <div className="absolute inset-0">
-          <Image
-            src={carouselImages[heroIndex] || HERO_IMAGES[0]}
-            alt="School Banner"
-            fill
-            className="object-cover opacity-35 transition-all duration-1000 ease-in-out transform scale-105"
-            priority
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-navy-950 via-navy-900/60 to-transparent" />
+        {/* Background Image Slider */}
+        <div className="absolute inset-0 z-0 opacity-35">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={heroIndex}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.8, ease: "easeInOut" }}
+              className="absolute inset-0 w-full h-full"
+            >
+              <CampusCarousel
+                images={getSlideImages(heroIndex)}
+                intervalSeconds={5}
+                altText={HERO_SLIDES[heroIndex].title}
+                aspectRatio="w-full h-full"
+                isHeroBackground={true}
+              />
+            </motion.div>
+          </AnimatePresence>
         </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-navy-950 via-navy-900/60 to-transparent pointer-events-none z-1" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="space-y-6"
-          >
-            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold bg-gold-500/10 text-gold-400 border border-gold-500/30 tracking-wider uppercase font-mono">
-              ★ Admitting for 2026/2027 Academic Session
-            </span>
-            <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl font-black text-white leading-tight tracking-tight">
-              Nurturing Excellence <br className="hidden sm:inline" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-gold-500">
-                From Nursery to Secondary
+        {/* Slide Content */}
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10 w-full">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={heroIndex}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -30 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="space-y-6 max-w-4xl mx-auto"
+            >
+              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold bg-gold-500/10 text-gold-400 border border-gold-500/30 tracking-wider uppercase font-mono shadow-inner">
+                {HERO_SLIDES[heroIndex].badge}
               </span>
-            </h1>
-            <p className="max-w-2xl mx-auto text-base sm:text-lg text-gray-300 font-sans font-light">
-              Welcome to Matem Schools, where we empower tomorrow&apos;s innovators, scientists, and leaders under a single supportive and highly disciplined academic system.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-4">
-              <Link
-                href="/admissions"
-                className="w-full sm:w-auto bg-gold-500 hover:bg-gold-400 text-navy-950 font-bold px-8 py-3.5 rounded-full shadow-lg transition-all transform hover:-translate-y-0.5 text-center"
-              >
-                Apply Now
-              </Link>
-            </div>
-          </motion.div>
+              <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl font-black text-white leading-tight tracking-tight">
+                {HERO_SLIDES[heroIndex].title} <br className="hidden sm:inline" />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-gold-500">
+                  {HERO_SLIDES[heroIndex].subtitle}
+                </span>
+              </h1>
+              <p className="max-w-2xl mx-auto text-base sm:text-lg text-gray-300 font-sans font-light leading-relaxed">
+                {HERO_SLIDES[heroIndex].description}
+              </p>
+              <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-4">
+                <Link
+                  href={HERO_SLIDES[heroIndex].ctaLink}
+                  className="w-full sm:w-auto bg-gold-500 hover:bg-gold-400 text-navy-950 font-bold px-8 py-3.5 rounded-full shadow-lg transition-all transform hover:-translate-y-0.5 text-center text-sm tracking-wide"
+                >
+                  {HERO_SLIDES[heroIndex].ctaText}
+                </Link>
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
 
-        {/* Waves or geometric overlay */}
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-50 to-transparent z-10" />
+        {/* Left / Right Navigation Arrows */}
+        <button
+          onClick={handlePrev}
+          className="absolute left-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-navy-900/40 hover:bg-gold-500 hover:text-navy-950 text-white transition-all duration-200 cursor-pointer border border-white/10 hover:border-gold-500 z-20 group hidden md:block"
+          aria-label="Previous Slide"
+        >
+          <ChevronLeft className="h-6 w-6 transform group-hover:-translate-x-0.5 transition-transform" />
+        </button>
+        <button
+          onClick={handleNext}
+          className="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-navy-900/40 hover:bg-gold-500 hover:text-navy-950 text-white transition-all duration-200 cursor-pointer border border-white/10 hover:border-gold-500 z-20 group hidden md:block"
+          aria-label="Next Slide"
+        >
+          <ChevronRight className="h-6 w-6 transform group-hover:translate-x-0.5 transition-transform" />
+        </button>
+
+        {/* Carousel Indicators / Dots */}
+        <div className="absolute bottom-8 left-0 right-0 flex justify-center space-x-2.5 z-20">
+          {HERO_SLIDES.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setHeroIndex(idx)}
+              className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
+                idx === heroIndex ? 'bg-gold-500 w-8 shadow-md shadow-gold-500/20' : 'bg-white/40 hover:bg-white/70 w-2.5'
+              }`}
+              title={`Go to slide ${idx + 1}`}
+              aria-label={`Go to slide ${idx + 1}`}
+            />
+          ))}
+        </div>
+
+        {/* Wave or geometric overlay */}
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-50 to-transparent z-10 pointer-events-none" />
       </section>
 
       {/* Stats Highlights Bar */}
