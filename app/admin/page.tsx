@@ -56,8 +56,25 @@ interface EventItem {
 
 export default function AdminPage() {
   // Authentication states
-  const [session, setSession] = useState<any>(null);
-  const [checkingSession, setCheckingSession] = useState(true);
+  const [session, setSession] = useState<any>(() => {
+    if (typeof window !== 'undefined') {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co';
+      const isConfigured = url && !url.includes('placeholder-project');
+      if (!isConfigured) {
+        const localSession = localStorage.getItem('matem_admin_session');
+        return localSession ? JSON.parse(localSession) : null;
+      }
+    }
+    return null;
+  });
+  const [checkingSession, setCheckingSession] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co';
+      const isConfigured = url && !url.includes('placeholder-project');
+      return !!isConfigured;
+    }
+    return true;
+  });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -120,8 +137,14 @@ export default function AdminPage() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  const isSupabaseConfigured = supabaseUrl && !supabaseUrl.includes('placeholder-project');
+
   // Monitor auth status
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      return;
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setCheckingSession(false);
@@ -132,7 +155,7 @@ export default function AdminPage() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [isSupabaseConfigured]);
 
   // Fetch data when session changes or tab changes or trigger fires
   useEffect(() => {
@@ -143,6 +166,29 @@ export default function AdminPage() {
       setLoading(true);
       setFeedbackMsg(null);
       try {
+        if (!isSupabaseConfigured) {
+          const res = await fetch('/api/db');
+          if (res.ok) {
+            const data = await res.json();
+            if (isMounted) {
+              setInquiries(data.inquiries || []);
+              setPosts(data.posts || []);
+              setEvents(data.events || []);
+              setCarouselsData({
+                carouselAcademicAchievement: data.carouselAcademicAchievement || { images: [], intervalSeconds: 5 },
+                carouselIctRobotics: data.carouselIctRobotics || { images: [], intervalSeconds: 5 },
+                carouselClassicScience: data.carouselClassicScience || { images: [], intervalSeconds: 5 },
+                carouselPhysicalLibrary: data.carouselPhysicalLibrary || { images: [], intervalSeconds: 5 },
+                carouselCrechePlayground: data.carouselCrechePlayground || { images: [], intervalSeconds: 5 },
+                carouselModernClinic: data.carouselModernClinic || { images: [], intervalSeconds: 5 },
+                carouselSportsGala: data.carouselSportsGala || { images: [], intervalSeconds: 5 },
+                carouselGraduationGala: data.carouselGraduationGala || { images: [], intervalSeconds: 5 }
+              });
+            }
+          }
+          return;
+        }
+
         if (activeTab === 'inquiries') {
           const { data, error } = await supabase
             .from('inquiries')
@@ -186,7 +232,7 @@ export default function AdminPage() {
       } catch (err: any) {
         console.error('Error fetching data:', err);
         if (isMounted) {
-          setFeedbackMsg({ type: 'error', text: err.message || 'Failed to sync data with Supabase.' });
+          setFeedbackMsg({ type: 'error', text: err.message || 'Failed to sync data with DB.' });
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -198,7 +244,7 @@ export default function AdminPage() {
     return () => {
       isMounted = false;
     };
-  }, [session, activeTab, refreshTrigger]);
+  }, [session, activeTab, refreshTrigger, isSupabaseConfigured]);
 
   // Login handler
   const handleLogin = async (e: React.FormEvent) => {
@@ -210,9 +256,22 @@ export default function AdminPage() {
     setAuthLoading(true);
     setAuthError('');
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      setSession(data.session);
+      if (!isSupabaseConfigured) {
+        if (email === 'admin@matemschools.edu' && password === 'admin123') {
+          const demoSession = { user: { email: 'admin@matemschools.edu' } };
+          setSession(demoSession);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('matem_admin_session', JSON.stringify(demoSession));
+          }
+          setFeedbackMsg({ type: 'success', text: 'Welcome to the Admin Workspace!' });
+        } else {
+          setAuthError('Invalid credentials. For preview mode, use: admin@matemschools.edu and password: admin123');
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        setSession(data.session);
+      }
     } catch (err: any) {
       console.error('Login error:', err);
       setAuthError(err.message || 'Invalid email or password. Please try again.');
@@ -224,6 +283,13 @@ export default function AdminPage() {
   // Sign out handler
   const handleLogout = async () => {
     try {
+      if (!isSupabaseConfigured) {
+        setSession(null);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('matem_admin_session');
+        }
+        return;
+      }
       await supabase.auth.signOut();
       setSession(null);
     } catch (err) {
@@ -427,14 +493,28 @@ export default function AdminPage() {
         author: postAuthor || 'Admin'
       };
 
-      if (modalType === 'create_post') {
-        const { error } = await supabase.from('posts').insert([payload]);
-        if (error) throw error;
-        setFeedbackMsg({ type: 'success', text: 'Blog Post created successfully!' });
+      if (!isSupabaseConfigured) {
+        const res = await fetch('/api/db', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: modalType === 'create_post' ? 'create_post' : 'update_post',
+            payload: { id: selectedPostId, ...payload }
+          })
+        });
+        const resData = await res.json();
+        if (!res.ok) throw new Error(resData.error || 'Failed to save post');
+        setFeedbackMsg({ type: 'success', text: `Blog Post ${modalType === 'create_post' ? 'created' : 'updated'} successfully!` });
       } else {
-        const { error } = await supabase.from('posts').update(payload).eq('id', selectedPostId);
-        if (error) throw error;
-        setFeedbackMsg({ type: 'success', text: 'Blog Post updated successfully!' });
+        if (modalType === 'create_post') {
+          const { error } = await supabase.from('posts').insert([payload]);
+          if (error) throw error;
+          setFeedbackMsg({ type: 'success', text: 'Blog Post created successfully!' });
+        } else {
+          const { error } = await supabase.from('posts').update(payload).eq('id', selectedPostId);
+          if (error) throw error;
+          setFeedbackMsg({ type: 'success', text: 'Blog Post updated successfully!' });
+        }
       }
       setIsModalOpen(false);
       setRefreshTrigger(prev => prev + 1);
@@ -464,14 +544,28 @@ export default function AdminPage() {
         category: eventCategory
       };
 
-      if (modalType === 'create_event') {
-        const { error } = await supabase.from('events').insert([payload]);
-        if (error) throw error;
-        setFeedbackMsg({ type: 'success', text: 'Event created successfully!' });
+      if (!isSupabaseConfigured) {
+        const res = await fetch('/api/db', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: modalType === 'create_event' ? 'create_event' : 'update_event',
+            payload: { id: selectedEventId, ...payload }
+          })
+        });
+        const resData = await res.json();
+        if (!res.ok) throw new Error(resData.error || 'Failed to save event');
+        setFeedbackMsg({ type: 'success', text: `Event ${modalType === 'create_event' ? 'created' : 'updated'} successfully!` });
       } else {
-        const { error } = await supabase.from('events').update(payload).eq('id', selectedEventId);
-        if (error) throw error;
-        setFeedbackMsg({ type: 'success', text: 'Event updated successfully!' });
+        if (modalType === 'create_event') {
+          const { error } = await supabase.from('events').insert([payload]);
+          if (error) throw error;
+          setFeedbackMsg({ type: 'success', text: 'Event created successfully!' });
+        } else {
+          const { error } = await supabase.from('events').update(payload).eq('id', selectedEventId);
+          if (error) throw error;
+          setFeedbackMsg({ type: 'success', text: 'Event updated successfully!' });
+        }
       }
       setIsModalOpen(false);
       setRefreshTrigger(prev => prev + 1);
@@ -490,8 +584,21 @@ export default function AdminPage() {
     }
     setLoading(true);
     try {
-      const { error } = await supabase.from(table).delete().eq('id', id);
-      if (error) throw error;
+      if (!isSupabaseConfigured) {
+        const res = await fetch('/api/db', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: table === 'posts' ? 'delete_post' : 'delete_event',
+            payload: { id }
+          })
+        });
+        const resData = await res.json();
+        if (!res.ok) throw new Error(resData.error || 'Failed to delete record');
+      } else {
+        const { error } = await supabase.from(table).delete().eq('id', id);
+        if (error) throw error;
+      }
       setFeedbackMsg({ type: 'success', text: `${table === 'posts' ? 'Blog Post' : 'Event'} deleted successfully.` });
       setRefreshTrigger(prev => prev + 1);
     } catch (err: any) {
@@ -505,11 +612,24 @@ export default function AdminPage() {
   // Inquiries status update dropdown handler
   const handleInquiryStatusChange = async (id: string, newStatus: 'pending' | 'contacted' | 'resolved') => {
     try {
-      const { error } = await supabase
-        .from('inquiries')
-        .update({ status: newStatus })
-        .eq('id', id);
-      if (error) throw error;
+      if (!isSupabaseConfigured) {
+        const res = await fetch('/api/db', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_inquiry_status',
+            payload: { id, status: newStatus }
+          })
+        });
+        const resData = await res.json();
+        if (!res.ok) throw new Error(resData.error || 'Failed to update status');
+      } else {
+        const { error } = await supabase
+          .from('inquiries')
+          .update({ status: newStatus })
+          .eq('id', id);
+        if (error) throw error;
+      }
       
       // Update local state smoothly
       setInquiries(prev => prev.map(inq => inq.id === id ? { ...inq, status: newStatus } : inq));
@@ -589,6 +709,22 @@ export default function AdminPage() {
 
             {/* Login Form */}
             <form onSubmit={handleLogin} className="p-8 space-y-6" id="login-form">
+              {!isSupabaseConfigured && (
+                <div className="p-4 bg-amber-50 border-l-4 border-amber-500 text-amber-900 text-xs flex flex-col space-y-1.5 rounded-md" id="login-demo-badge">
+                  <div className="flex items-center space-x-1.5 font-bold">
+                    <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Demo Preview Mode Active</span>
+                  </div>
+                  <p className="text-amber-800 leading-relaxed">
+                    To access the Staff Portal in this preview, authorize with:
+                    <br />
+                    <span className="font-semibold select-all font-mono">Email: admin@matemschools.edu</span>
+                    <br />
+                    <span className="font-semibold select-all font-mono">Password: admin123</span>
+                  </p>
+                </div>
+              )}
+
               {authError && (
                 <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm flex items-start space-x-2 rounded-md" id="login-error-alert">
                   <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />

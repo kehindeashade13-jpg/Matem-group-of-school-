@@ -300,6 +300,29 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      case 'update_post': {
+        const { id, title, category, excerpt, content, image, author } = payload;
+        if (!id) {
+          return NextResponse.json({ error: 'Missing post id.' }, { status: 400 });
+        }
+        const db = getDatabase();
+        const index = db.posts.findIndex(p => p.id === id);
+        if (index === -1) {
+          return NextResponse.json({ error: 'Post not found.' }, { status: 404 });
+        }
+        db.posts[index] = {
+          ...db.posts[index],
+          title: title || db.posts[index].title,
+          category: category || db.posts[index].category,
+          excerpt: excerpt || db.posts[index].excerpt,
+          content: content || db.posts[index].content,
+          image: image || db.posts[index].image,
+          author: author || db.posts[index].author,
+        };
+        saveDatabase(db);
+        return NextResponse.json({ success: true, post: db.posts[index] });
+      }
+
       case 'create_event': {
         const { title, description, date, time, location, category } = payload;
         if (!title || !description || !date || !time || !location) {
@@ -373,6 +396,29 @@ export async function POST(req: NextRequest) {
           saveDatabase(db);
           return NextResponse.json({ success: true });
         }
+      }
+
+      case 'update_event': {
+        const { id, title, description, date, time, location, category } = payload;
+        if (!id) {
+          return NextResponse.json({ error: 'Missing event id.' }, { status: 400 });
+        }
+        const db = getDatabase();
+        const index = db.events.findIndex(e => e.id === id);
+        if (index === -1) {
+          return NextResponse.json({ error: 'Event not found.' }, { status: 404 });
+        }
+        db.events[index] = {
+          ...db.events[index],
+          title: title || db.events[index].title,
+          description: description || db.events[index].description,
+          date: date || db.events[index].date,
+          time: time || db.events[index].time,
+          location: location || db.events[index].location,
+          category: category || db.events[index].category,
+        };
+        saveDatabase(db);
+        return NextResponse.json({ success: true, event: db.events[index] });
       }
 
       case 'update_carousel': {
