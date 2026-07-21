@@ -94,6 +94,7 @@ export default function AdminPage() {
     carouselPhysicalLibrary: { images: [], intervalSeconds: 5 },
     carouselCrechePlayground: { images: [], intervalSeconds: 5 },
     carouselModernClinic: { images: [], intervalSeconds: 5 },
+    carouselEvent: { images: [], intervalSeconds: 5 },
     carouselSportsGala: { images: [], intervalSeconds: 5 },
     carouselGraduationGala: { images: [], intervalSeconds: 5 }
   });
@@ -181,6 +182,7 @@ export default function AdminPage() {
                 carouselPhysicalLibrary: data.carouselPhysicalLibrary || { images: [], intervalSeconds: 5 },
                 carouselCrechePlayground: data.carouselCrechePlayground || { images: [], intervalSeconds: 5 },
                 carouselModernClinic: data.carouselModernClinic || { images: [], intervalSeconds: 5 },
+                carouselEvent: data.carouselEvent || { images: [], intervalSeconds: 5 },
                 carouselSportsGala: data.carouselSportsGala || { images: [], intervalSeconds: 5 },
                 carouselGraduationGala: data.carouselGraduationGala || { images: [], intervalSeconds: 5 }
               });
@@ -223,6 +225,7 @@ export default function AdminPage() {
                 carouselPhysicalLibrary: data.carouselPhysicalLibrary || { images: [], intervalSeconds: 5 },
                 carouselCrechePlayground: data.carouselCrechePlayground || { images: [], intervalSeconds: 5 },
                 carouselModernClinic: data.carouselModernClinic || { images: [], intervalSeconds: 5 },
+                carouselEvent: data.carouselEvent || { images: [], intervalSeconds: 5 },
                 carouselSportsGala: data.carouselSportsGala || { images: [], intervalSeconds: 5 },
                 carouselGraduationGala: data.carouselGraduationGala || { images: [], intervalSeconds: 5 }
               });
@@ -1324,6 +1327,7 @@ export default function AdminPage() {
 
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8" id="carousels-grid">
                           {[
+                            { key: 'event', stateKey: 'carouselEvent', label: 'Featured Event Highlights', description: 'Rotating images for Featured Event Highlights on the gallery page' },
                             { key: 'academicAchievement', stateKey: 'carouselAcademicAchievement', label: 'Academic Achievement', description: 'Rotating images for Academic Achievement slide on the home page' },
                             { key: 'ictRobotics', stateKey: 'carouselIctRobotics', label: 'ICT & Robotics Lab', description: 'Rotating images for ICT and Robotics Lab slide on the home page' },
                             { key: 'classicScience', stateKey: 'carouselClassicScience', label: 'Classic Science Laboratory', description: 'Rotating images for Classic Science Laboratory slide on the home page' },
