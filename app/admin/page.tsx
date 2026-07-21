@@ -147,7 +147,13 @@ export default function AdminPage() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const isSupabaseConfigured = supabaseUrl && !supabaseUrl.includes('placeholder-project');
+  const isSupabaseConfigured = 
+    supabaseUrl && 
+    !supabaseUrl.includes('placeholder-project') && 
+    !supabaseUrl.includes('your-supabase-project') &&
+    supabaseAnonKey &&
+    !supabaseAnonKey.includes('placeholder-anon-key') &&
+    !supabaseAnonKey.includes('your-supabase-anon-key');
 
   // Monitor auth status
   useEffect(() => {

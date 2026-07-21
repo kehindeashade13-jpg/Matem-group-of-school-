@@ -4,7 +4,14 @@ import { supabase } from '@/lib/supabase';
 
 export async function GET() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const isSupabaseConfigured = url && !url.includes("placeholder-project");
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const isSupabaseConfigured = 
+    url && 
+    !url.includes("placeholder-project") && 
+    !url.includes("your-supabase-project") &&
+    anonKey &&
+    !anonKey.includes("placeholder-anon-key") &&
+    !anonKey.includes("your-supabase-anon-key");
 
   if (isSupabaseConfigured) {
     try {
@@ -123,7 +130,14 @@ export async function POST(req: NextRequest) {
     }
 
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const isSupabaseConfigured = url && !url.includes("placeholder-project");
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const isSupabaseConfigured = 
+      url && 
+      !url.includes("placeholder-project") && 
+      !url.includes("your-supabase-project") &&
+      anonKey &&
+      !anonKey.includes("placeholder-anon-key") &&
+      !anonKey.includes("your-supabase-anon-key");
 
     switch (action) {
       case 'submit_inquiry': {
