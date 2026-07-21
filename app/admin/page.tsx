@@ -956,7 +956,7 @@ export default function AdminPage() {
                   id="back-to-storefront-login-btn"
                 >
                   <Home className="w-4 h-4 text-slate-600" />
-                  <span>Back to Storefront</span>
+                  <span>Back to Homepage</span>
                 </Link>
               </div>
 
@@ -1056,7 +1056,7 @@ export default function AdminPage() {
                   id="sidebar-btn-storefront"
                 >
                   <Home className="w-4 h-4 shrink-0 text-amber-400" />
-                  <span>Exit to Storefront</span>
+                  <span>Exit to Homepage</span>
                 </Link>
               </div>
             </nav>
