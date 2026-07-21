@@ -11,10 +11,16 @@ export async function GET(
     
     // Safely construct file path to avoid directory traversal
     const safeFilename = path.basename(filename);
-    const filePath = path.join(process.cwd(), 'public', 'uploads', safeFilename);
+    const publicFilePath = path.join(process.cwd(), 'public', 'uploads', safeFilename);
+    const tempFilePath = path.join('/tmp', 'uploads', safeFilename);
 
+    let filePath = publicFilePath;
     if (!fs.existsSync(filePath)) {
-      return new NextResponse('File not found', { status: 404 });
+      if (fs.existsSync(tempFilePath)) {
+        filePath = tempFilePath;
+      } else {
+        return new NextResponse('File not found', { status: 404 });
+      }
     }
 
     const fileBuffer = fs.readFileSync(filePath);

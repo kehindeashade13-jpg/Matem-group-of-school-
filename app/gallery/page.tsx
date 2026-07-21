@@ -5,25 +5,8 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import CampusCarousel from '@/components/CampusCarousel';
-import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Image as ImageIcon, Calendar, Clock, MapPin, 
-  ChevronRight, X, Sparkles, RefreshCw, ZoomIn 
-} from 'lucide-react';
+import { Image as ImageIcon, Calendar, Clock, MapPin } from 'lucide-react';
 import { EventItem } from '@/lib/db';
-import Image from 'next/image';
-
-const GALLERY_PHOTOS = [
-  { id: 1, title: "Modern Robotics Lab", category: "Campus", url: "https://picsum.photos/seed/robotic_lab/800/600" },
-  { id: 2, title: "Interactive Primary Classroom", category: "Classrooms", url: "https://picsum.photos/seed/primary_room/800/600" },
-  { id: 3, title: "2025 SSS Graduation Parade", category: "Graduation", url: "https://picsum.photos/seed/grad_gala/800/600" },
-  { id: 4, title: "Secondary chemistry experiment", category: "Classrooms", url: "https://picsum.photos/seed/chem_exper/800/600" },
-  { id: 5, title: "Pupils march-past rehearsal", category: "Sports Day", url: "https://picsum.photos/seed/sports_march/800/600" },
-  { id: 6, title: "Lagos cultural dance performance", category: "Cultural Day", url: "https://picsum.photos/seed/cultural_dance/800/600" },
-  { id: 7, title: "Spacious Physical Reading Library", category: "Campus", url: "https://picsum.photos/seed/read_lib/800/600" },
-  { id: 8, title: "Primary math exhibition boards", category: "Campus", url: "https://picsum.photos/seed/math_exhib/800/600" },
-  { id: 9, title: "Prize giving Ceremony 2025", category: "Graduation", url: "https://picsum.photos/seed/prize_giving/800/600" }
-];
 
 const PAST_HIGHLIGHTS = [
   {
@@ -50,11 +33,6 @@ const PAST_HIGHLIGHTS = [
 
 export default function GalleryPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
-  const [activeCategory, setActiveCategory] = useState<string>('All');
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-
-  const [galleryImages, setGalleryImages] = useState<string[]>([]);
-  const [galleryInterval, setGalleryInterval] = useState(5);
   const [eventImages, setEventImages] = useState<string[]>([]);
   const [eventInterval, setEventInterval] = useState(5);
   const [sportsGalaImages, setSportsGalaImages] = useState<string[]>([]);
@@ -71,10 +49,6 @@ export default function GalleryPage() {
           const data = text ? JSON.parse(text) : {};
           setEvents(data.events || []);
           
-          if (data.carouselGallery && data.carouselGallery.images?.length > 0) {
-            setGalleryImages(data.carouselGallery.images);
-            setGalleryInterval(data.carouselGallery.intervalSeconds || 5);
-          }
           if (data.carouselEvent && data.carouselEvent.images?.length > 0) {
             setEventImages(data.carouselEvent.images);
             setEventInterval(data.carouselEvent.intervalSeconds || 5);
@@ -95,12 +69,6 @@ export default function GalleryPage() {
     fetchEventsAndCarousels();
   }, []);
 
-  const categories = ['All', 'Campus', 'Classrooms', 'Sports Day', 'Cultural Day', 'Graduation'];
-
-  const filteredPhotos = activeCategory === 'All' 
-    ? GALLERY_PHOTOS 
-    : GALLERY_PHOTOS.filter(photo => photo.category === activeCategory);
-
   return (
     <>
       <Navbar />
@@ -115,10 +83,10 @@ export default function GalleryPage() {
             Campus Life
           </span>
           <h1 className="text-4xl sm:text-5xl font-serif font-black tracking-tight">
-            Events & Photo Gallery
+            Events & Past Highlights
           </h1>
           <p className="max-w-xl mx-auto text-sm text-gray-300 font-sans font-light">
-            A visual window into the vibrant physical activities, modern laboratories, athletic sports meets, and graduation triumphs of Matem Schools.
+            A visual window into the vibrant physical activities, parent-teacher collaboration events, athletic sports meets, and graduation triumphs of Matem Schools.
           </p>
         </div>
       </section>
@@ -228,95 +196,8 @@ export default function GalleryPage() {
         </div>
       </section>
 
-      {/* Photo Gallery Grid with category filters */}
-      <section id="photo-gallery" className="py-20 bg-white border-t border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
-            <span className="text-xs font-bold text-gold-500 uppercase tracking-widest block font-mono">
-              In Frame
-            </span>
-            <h2 className="text-3xl font-serif font-bold text-navy-800">Campus Photo Gallery</h2>
-            <div className="w-12 h-1 bg-gold-500 mx-auto rounded" />
-          </div>
-
-          {/* Dynamic Gallery Showcase Carousel */}
-          {galleryImages.length > 0 && (
-            <div className="max-w-5xl mx-auto mb-12 space-y-3 animate-fadeIn">
-              <h3 className="text-[10px] font-bold text-navy-800 font-serif flex items-center justify-center uppercase tracking-widest text-gold-600">
-                <span className="w-1.5 h-1.5 rounded-full bg-gold-500 mr-2 inline-block animate-pulse" />
-                Featured Gallery Showcase
-              </h3>
-              <div className="h-64 sm:h-96 w-full rounded-2xl overflow-hidden shadow-premium border border-gray-100">
-                <CampusCarousel
-                  images={galleryImages}
-                  intervalSeconds={galleryInterval}
-                  altText="Featured Gallery Showcase"
-                  aspectRatio="h-full w-full"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Categories Swiper/Filter Bar */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`px-4.5 py-2.5 rounded-full text-xs font-bold transition-all border ${
-                  activeCategory === cat
-                    ? 'bg-navy-800 text-white border-navy-800 shadow'
-                    : 'bg-gray-50 text-gray-600 border-gray-200/50 hover:bg-gray-100'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
-          {/* Grid Layout */}
-          <motion.div 
-            layout 
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            <AnimatePresence mode="popLayout">
-              {filteredPhotos.map((photo) => (
-                <motion.div
-                  layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.25 }}
-                  key={photo.id}
-                  onClick={() => setSelectedPhoto(photo.url)}
-                  className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100 shadow-sm cursor-pointer relative group h-64"
-                >
-                  <Image
-                    src={photo.url}
-                    alt={photo.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    referrerPolicy="no-referrer"
-                  />
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-navy-950/75 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5 text-white">
-                    <ZoomIn className="absolute top-4 right-4 h-5 w-5 text-gold-500" />
-                    <span className="text-[9px] font-bold text-gold-400 font-mono tracking-widest uppercase">
-                      {photo.category}
-                    </span>
-                    <h4 className="font-serif font-bold text-sm text-white mt-1">
-                      {photo.title}
-                    </h4>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </motion.div>
-        </div>
-      </section>
-
       {/* Past Event Highlights (Cards) */}
-      <section id="past-events" className="py-20 bg-gray-50 border-t border-gray-100">
+      <section id="past-events" className="py-20 bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-3">
             <span className="text-xs font-bold text-gold-500 uppercase tracking-widest block font-mono">
@@ -331,7 +212,7 @@ export default function GalleryPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-5xl mx-auto">
             {PAST_HIGHLIGHTS.map((high, idx) => (
-              <div key={idx} className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-premium group flex flex-col justify-between">
+              <div key={idx} className="bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 shadow-premium group flex flex-col justify-between">
                 <div>
                   <div className="relative h-60 overflow-hidden">
                     <CampusCarousel
@@ -356,36 +237,6 @@ export default function GalleryPage() {
           </div>
         </div>
       </section>
-
-      {/* Fullscreen Photo Lightbox Modal */}
-      <AnimatePresence>
-        {selectedPhoto && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-navy-950/95 z-50 flex items-center justify-center p-4 cursor-zoom-out"
-            onClick={() => setSelectedPhoto(null)}
-          >
-            <button
-              onClick={() => setSelectedPhoto(null)}
-              className="absolute top-6 right-6 text-white hover:text-gold-500 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all cursor-pointer"
-              aria-label="Close Lightbox"
-            >
-              <X className="h-6 w-6" />
-            </button>
-            <div className="relative max-w-5xl max-h-[80vh] w-full h-full flex items-center justify-center">
-              <Image
-                src={selectedPhoto}
-                alt="Enlarged Campus Photo"
-                fill
-                className="object-contain rounded-lg border border-white/20 shadow-premium"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <Footer />
       <WhatsAppButton />

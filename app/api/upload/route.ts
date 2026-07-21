@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
         // Upload to Supabase Storage
         const { data, error } = await supabase.storage
           .from('school-media')
-          .upload(`carousel/${filename}`, buffer, {
+          .upload(`carousels/${filename}`, buffer, {
             contentType: file.type,
             duplex: 'half'
           });
@@ -66,17 +66,35 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Fallback: Save locally to /public/uploads
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    // Fallback: Save locally
+    let savedPath = '';
+    const publicUploadDir = path.join(process.cwd(), 'public', 'uploads');
+    const tempUploadDir = path.join('/tmp', 'uploads');
+
+    try {
+      if (!fs.existsSync(publicUploadDir)) {
+        fs.mkdirSync(publicUploadDir, { recursive: true });
+      }
+      const filePath = path.join(publicUploadDir, filename);
+      await fs.promises.writeFile(filePath, buffer);
+      savedPath = `/uploads/${filename}`;
+    } catch (fsErr) {
+      console.log('Unable to write to /public/uploads (expected on serverless environments like Vercel). Falling back to /tmp/uploads...');
+      try {
+        if (!fs.existsSync(tempUploadDir)) {
+          fs.mkdirSync(tempUploadDir, { recursive: true });
+        }
+        const filePath = path.join(tempUploadDir, filename);
+        await fs.promises.writeFile(filePath, buffer);
+        savedPath = `/uploads/${filename}?temp=true`;
+      } catch (tempErr: any) {
+        console.error('Failed to write to fallback temp directory:', tempErr);
+        return NextResponse.json({ error: 'Failed to write file locally: ' + tempErr.message }, { status: 500 });
+      }
     }
 
-    const filePath = path.join(uploadDir, filename);
-    await fs.promises.writeFile(filePath, buffer);
-
     return NextResponse.json({
-      url: `/uploads/${filename}`
+      url: savedPath
     });
 
   } catch (err: any) {
