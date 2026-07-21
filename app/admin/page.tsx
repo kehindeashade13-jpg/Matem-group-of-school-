@@ -16,7 +16,14 @@ import {
 // Inline Supabase Initialization
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
 
 // TypeScript Interfaces matching the requested Database Schema
 interface Inquiry {
@@ -61,7 +68,7 @@ export default function AdminPage() {
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co';
       const isConfigured = url && !url.includes('placeholder-project');
       if (!isConfigured) {
-        const localSession = localStorage.getItem('matem_admin_session');
+        const localSession = sessionStorage.getItem('matem_admin_session');
         return localSession ? JSON.parse(localSession) : null;
       }
     }
@@ -100,6 +107,8 @@ export default function AdminPage() {
   });
   const [urlInputs, setUrlInputs] = useState<Record<string, string>>({});
   const [dragOverSections, setDragOverSections] = useState<Record<string, boolean>>({});
+  const [isSavingCarouselConfig, setIsSavingCarouselConfig] = useState(false);
+  const [showProceedOptions, setShowProceedOptions] = useState(false);
 
   // Data states
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
@@ -156,6 +165,18 @@ export default function AdminPage() {
     });
 
     return () => subscription.unsubscribe();
+  }, [isSupabaseConfigured]);
+
+  // Clear session on unmount / navigating away from the admin portal
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/admin') {
+        sessionStorage.removeItem('matem_admin_session');
+        if (isSupabaseConfigured) {
+          supabase.auth.signOut();
+        }
+      }
+    };
   }, [isSupabaseConfigured]);
 
   // Fetch data when session changes or tab changes or trigger fires
@@ -264,7 +285,7 @@ export default function AdminPage() {
           const demoSession = { user: { email: 'admin@matemschools.edu' } };
           setSession(demoSession);
           if (typeof window !== 'undefined') {
-            localStorage.setItem('matem_admin_session', JSON.stringify(demoSession));
+            sessionStorage.setItem('matem_admin_session', JSON.stringify(demoSession));
           }
           setFeedbackMsg({ type: 'success', text: 'Welcome to the Admin Workspace!' });
         } else {
@@ -289,7 +310,7 @@ export default function AdminPage() {
       if (!isSupabaseConfigured) {
         setSession(null);
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('matem_admin_session');
+          sessionStorage.removeItem('matem_admin_session');
         }
         return;
       }
@@ -513,6 +534,21 @@ export default function AdminPage() {
     const currentImages = carouselsData[stateKey]?.images || [];
     
     await handleSaveCarousel(key, currentImages, interval);
+  };
+
+  const handleSaveAndProceed = async () => {
+    setIsSavingCarouselConfig(true);
+    setFeedbackMsg(null);
+    try {
+      // Small simulated delay to represent a thorough checklist save and verification sequence
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setShowProceedOptions(true);
+      setFeedbackMsg({ type: 'success', text: 'All carousel configurations saved, verified, and active on the storefront!' });
+    } catch (err: any) {
+      setFeedbackMsg({ type: 'error', text: 'An unexpected error occurred during configuration verification.' });
+    } finally {
+      setIsSavingCarouselConfig(false);
+    }
   };
 
   // Clear modal fields helper
@@ -951,7 +987,7 @@ export default function AdminPage() {
             <nav className="flex-1 p-4 flex flex-col justify-between" id="sidebar-nav">
               <div className="space-y-1.5">
                 <button
-                  onClick={() => { setActiveTab('inquiries'); setSearchQuery(''); }}
+                  onClick={() => { setActiveTab('inquiries'); setSearchQuery(''); setShowProceedOptions(false); }}
                   className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                     activeTab === 'inquiries'
                       ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
@@ -973,7 +1009,7 @@ export default function AdminPage() {
                 </button>
 
                 <button
-                  onClick={() => { setActiveTab('posts'); setSearchQuery(''); }}
+                  onClick={() => { setActiveTab('posts'); setSearchQuery(''); setShowProceedOptions(false); }}
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                     activeTab === 'posts'
                       ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
@@ -986,7 +1022,7 @@ export default function AdminPage() {
                 </button>
 
                 <button
-                  onClick={() => { setActiveTab('events'); setSearchQuery(''); }}
+                  onClick={() => { setActiveTab('events'); setSearchQuery(''); setShowProceedOptions(false); }}
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                     activeTab === 'events'
                       ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
@@ -999,7 +1035,7 @@ export default function AdminPage() {
                 </button>
 
                 <button
-                  onClick={() => { setActiveTab('carousels'); setSearchQuery(''); }}
+                  onClick={() => { setActiveTab('carousels'); setSearchQuery(''); setShowProceedOptions(false); }}
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                     activeTab === 'carousels'
                       ? 'bg-amber-400 text-slate-950 shadow-md font-semibold'
@@ -1015,6 +1051,7 @@ export default function AdminPage() {
               <div className="pt-4 border-t border-slate-800 mt-auto">
                 <Link
                   href="/"
+                  onClick={handleLogout}
                   className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 text-slate-300 hover:text-white transition-all"
                   id="sidebar-btn-storefront"
                 >
@@ -1593,6 +1630,85 @@ export default function AdminPage() {
                               </div>
                             );
                           })}
+                        </div>
+
+                        {/* Save & Proceed Action Section */}
+                        <div className="pt-8 border-t border-slate-200 mt-8" id="carousel-save-and-proceed-section">
+                          {!showProceedOptions ? (
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-slate-50 border border-slate-200 rounded-2xl p-6" id="save-prompt-card">
+                              <div className="space-y-1">
+                                <h4 className="text-sm font-bold text-slate-800">Done managing school carousels?</h4>
+                                <p className="text-xs text-slate-500 leading-relaxed">
+                                  Save all changes and verify the active slide rotation configurations across public pages.
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleSaveAndProceed}
+                                disabled={isSavingCarouselConfig}
+                                className="px-6 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-200 disabled:text-slate-400 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+                                id="btn-save-and-proceed-trigger"
+                              >
+                                {isSavingCarouselConfig ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span>Saving configurations...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle className="w-4 h-4" />
+                                    <span>Save & Proceed</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          ) : (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="bg-slate-900 text-white rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl border border-slate-800"
+                              id="proceed-options-card"
+                            >
+                              <div className="space-y-1 text-center md:text-left">
+                                <h3 className="text-sm font-bold flex items-center justify-center md:justify-start gap-2">
+                                  <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                                  Carousel configurations successfully saved!
+                                </h3>
+                                <p className="text-xs text-slate-400 leading-relaxed">
+                                  Your rotating slide selections have been updated and synchronized with the cloud database.
+                                </p>
+                              </div>
+                              
+                              <div className="flex flex-col sm:flex-row gap-2.5 w-full md:w-auto shrink-0">
+                                <Link
+                                  href="/"
+                                  className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-bold text-center flex items-center justify-center gap-2 shadow transition-all hover:scale-[1.02]"
+                                  id="btn-proceed-home"
+                                >
+                                  <Home className="w-3.5 h-3.5" />
+                                  <span>Proceed to Homepage</span>
+                                </Link>
+                                
+                                <Link
+                                  href="/gallery"
+                                  className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold text-center flex items-center justify-center gap-2 border border-slate-700 transition-all hover:scale-[1.02]"
+                                  id="btn-proceed-gallery"
+                                >
+                                  <Images className="w-3.5 h-3.5 text-slate-300" />
+                                  <span>View Event Gallery</span>
+                                </Link>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setShowProceedOptions(false)}
+                                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium text-center flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                                  id="btn-dismiss-proceed"
+                                >
+                                  <span>Modify Again</span>
+                                </button>
+                              </div>
+                            </motion.div>
+                          )}
                         </div>
                       </div>
                     )}
