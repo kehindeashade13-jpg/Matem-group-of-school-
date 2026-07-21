@@ -343,31 +343,38 @@ export default function AdminPage() {
     setLoading(true);
     setFeedbackMsg(null);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const cleanFileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `carousels/${cleanFileName}`;
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      const { data, error } = await supabase.storage
+        .from('school-media')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      const data = await res.json();
+      if (error) throw error;
 
-      if (res.ok && data.url) {
-        const imageUrl = data.url;
+      const { data: urlData } = supabase.storage
+        .from('school-media')
+        .getPublicUrl(filePath);
 
-        const stateKey = key === 'academicAchievement' 
-          ? 'carouselAcademicAchievement' 
-          : `carousel${key.charAt(0).toUpperCase() + key.slice(1)}`;
-        
-        const currentImages = carouselsData[stateKey]?.images || [];
-        const updatedImages = [...currentImages, imageUrl];
-        
-        await handleSaveCarousel(key, updatedImages, carouselsData[stateKey]?.intervalSeconds || 5);
-        setFeedbackMsg({ type: 'success', text: 'Image uploaded and carousel updated successfully!' });
-      } else {
-        throw new Error(data.error || 'Failed to upload image file');
+      if (!urlData || !urlData.publicUrl) {
+        throw new Error('Failed to retrieve public URL from Supabase storage.');
       }
+
+      const imageUrl = urlData.publicUrl;
+
+      const stateKey = key === 'academicAchievement' 
+        ? 'carouselAcademicAchievement' 
+        : `carousel${key.charAt(0).toUpperCase() + key.slice(1)}`;
+      
+      const currentImages = carouselsData[stateKey]?.images || [];
+      const updatedImages = [...currentImages, imageUrl];
+      
+      await handleSaveCarousel(key, updatedImages, carouselsData[stateKey]?.intervalSeconds || 5);
+      setFeedbackMsg({ type: 'success', text: 'Image uploaded and carousel updated successfully!' });
     } catch (err: any) {
       console.error('Upload error:', err);
       setFeedbackMsg({ type: 'error', text: err.message || 'Failed to upload image.' });
@@ -380,22 +387,29 @@ export default function AdminPage() {
     setLoading(true);
     setFeedbackMsg(null);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const cleanFileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `carousels/${cleanFileName}`;
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      const { data, error } = await supabase.storage
+        .from('school-media')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      const data = await res.json();
+      if (error) throw error;
 
-      if (res.ok && data.url) {
-        setPostImage(data.url);
-        setFeedbackMsg({ type: 'success', text: 'Article cover image uploaded successfully!' });
-      } else {
-        throw new Error(data.error || 'Failed to upload image file');
+      const { data: urlData } = supabase.storage
+        .from('school-media')
+        .getPublicUrl(filePath);
+
+      if (!urlData || !urlData.publicUrl) {
+        throw new Error('Failed to retrieve public URL from Supabase storage.');
       }
+
+      setPostImage(urlData.publicUrl);
+      setFeedbackMsg({ type: 'success', text: 'Article cover image uploaded successfully!' });
     } catch (err: any) {
       console.error('Upload error:', err);
       setFeedbackMsg({ type: 'error', text: err.message || 'Failed to upload image.' });
@@ -1251,7 +1265,7 @@ export default function AdminPage() {
                                     </button>
                                     <button
                                       onClick={() => handleDelete(post.id, 'posts')}
-                                      className="p-1.5 text-red-600 hover:text-red-950 hover:bg-red-50 rounded-lg transition-all inline-block"
+                                      className="p-1.5 text-red-600 hover:text-red-955 hover:bg-red-50 rounded-lg transition-all inline-block"
                                       title="Delete Article"
                                       id={`delete-post-btn-${post.id}`}
                                     >
@@ -1329,7 +1343,7 @@ export default function AdminPage() {
                                     </button>
                                     <button
                                       onClick={() => handleDelete(evt.id, 'events')}
-                                      className="p-1.5 text-red-600 hover:text-red-950 hover:bg-red-50 rounded-lg transition-all inline-block"
+                                      className="p-1.5 text-red-600 hover:text-red-955 hover:bg-red-50 rounded-lg transition-all inline-block"
                                       title="Delete Event"
                                       id={`delete-event-btn-${evt.id}`}
                                     >
@@ -1896,3 +1910,8 @@ export default function AdminPage() {
     </div>
   );
 }
+
+
+
+                  
+       
