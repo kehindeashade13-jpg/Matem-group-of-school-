@@ -376,6 +376,34 @@ export default function AdminPage() {
     }
   };
 
+  const handleUploadPostImage = async (file: File) => {
+    setLoading(true);
+    setFeedbackMsg(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.url) {
+        setPostImage(data.url);
+        setFeedbackMsg({ type: 'success', text: 'Article cover image uploaded successfully!' });
+      } else {
+        throw new Error(data.error || 'Failed to upload image file');
+      }
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      setFeedbackMsg({ type: 'error', text: err.message || 'Failed to upload image.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeleteCarouselImage = async (key: string, indexToDelete: number) => {
     const stateKey = key === 'academicAchievement' 
       ? 'carouselAcademicAchievement' 
@@ -1588,15 +1616,57 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-600 uppercase block">Cover Image URL</label>
-                      <input
-                        type="url"
-                        value={postImage}
-                        onChange={(e) => setPostImage(e.target.value)}
-                        placeholder="https://picsum.photos/seed/school/800/600"
-                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
-                      />
+                    <div className="space-y-2 border border-slate-200 rounded-xl p-4 bg-slate-50/50">
+                      <label className="text-xs font-bold text-slate-700 uppercase block">Cover Image</label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+                        <div className="flex flex-col justify-between">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Option A: Upload Image File</span>
+                          <label className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-xl p-4 cursor-pointer hover:border-slate-400 hover:bg-slate-50 transition-all text-center min-h-[100px]">
+                            <Upload className="w-5 h-5 text-slate-400 mb-1" />
+                            <span className="text-xs text-slate-600 font-medium">Select Image File</span>
+                            <span className="text-[9px] text-slate-400">PNG, JPG, WEBP, GIF</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  await handleUploadPostImage(file);
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+                        <div className="flex flex-col justify-between">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Option B: Cover Image URL</span>
+                          <textarea
+                            value={postImage}
+                            onChange={(e) => setPostImage(e.target.value)}
+                            placeholder="https://picsum.photos/seed/school/800/600"
+                            rows={4}
+                            className="w-full flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+                          />
+                        </div>
+                      </div>
+                      {postImage && (
+                        <div className="mt-2 flex items-center space-x-3 bg-white p-2.5 rounded-xl border border-slate-200 animate-fadeIn">
+                          <div className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 border border-slate-200 bg-slate-50">
+                            <img src={postImage} alt="Cover Preview" className="w-full h-full object-cover" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] font-mono truncate text-slate-500 mb-0.5">Active Cover Path:</p>
+                            <p className="text-xs font-semibold truncate text-slate-800">{postImage}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setPostImage('')}
+                            className="text-red-500 hover:text-red-600 text-xs font-semibold px-2 hover:bg-red-50 py-1.5 rounded-lg transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-1">
