@@ -94,7 +94,7 @@ export default function HomePage() {
   const [carouselInterval, setCarouselInterval] = useState(6000);
 
   useEffect(() => {
-    // Fetch latest news and events
+    // Fetch latest news, events, and carousels
     const fetchDb = async () => {
       try {
         const response = await fetch('/api/db');
@@ -113,7 +113,15 @@ export default function HomePage() {
         console.error('Error loading homepage data:', error);
       }
     };
+
     fetchDb();
+
+    // Re-fetch when user switches back to this tab
+    const handleFocus = () => fetchDb();
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const handlePrev = () => {

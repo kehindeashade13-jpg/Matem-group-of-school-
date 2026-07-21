@@ -84,7 +84,28 @@ export default function AdminPage() {
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   // Carousels State
+  const getStateKey = (key: string): string => {
+    if (key === 'default' || key === 'carousel') return 'carousel';
+    if (key === 'academicAchievement') return 'carouselAcademicAchievement';
+    if (key === 'nurseryPrimary') return 'carouselNurseryPrimary';
+    if (key === 'secondary') return 'carouselSecondary';
+    if (key === 'gallery') return 'carouselGallery';
+    if (key === 'event') return 'carouselEvent';
+    if (key === 'ictRobotics') return 'carouselIctRobotics';
+    if (key === 'classicScience') return 'carouselClassicScience';
+    if (key === 'physicalLibrary') return 'carouselPhysicalLibrary';
+    if (key === 'crechePlayground') return 'carouselCrechePlayground';
+    if (key === 'modernClinic') return 'carouselModernClinic';
+    if (key === 'sportsGala') return 'carouselSportsGala';
+    if (key === 'graduationGala') return 'carouselGraduationGala';
+    return `carousel${key.charAt(0).toUpperCase() + key.slice(1)}`;
+  };
+
   const [carouselsData, setCarouselsData] = useState<any>({
+    carousel: { images: [], intervalSeconds: 5 },
+    carouselNurseryPrimary: { images: [], intervalSeconds: 5 },
+    carouselSecondary: { images: [], intervalSeconds: 5 },
+    carouselGallery: { images: [], intervalSeconds: 5 },
     carouselAcademicAchievement: { images: [], intervalSeconds: 5 },
     carouselIctRobotics: { images: [], intervalSeconds: 5 },
     carouselClassicScience: { images: [], intervalSeconds: 5 },
@@ -185,6 +206,10 @@ export default function AdminPage() {
               setPosts(data.posts || []);
               setEvents(data.events || []);
               setCarouselsData({
+                carousel: data.carousel || { images: [], intervalSeconds: 5 },
+                carouselNurseryPrimary: data.carouselNurseryPrimary || { images: [], intervalSeconds: 5 },
+                carouselSecondary: data.carouselSecondary || { images: [], intervalSeconds: 5 },
+                carouselGallery: data.carouselGallery || { images: [], intervalSeconds: 5 },
                 carouselAcademicAchievement: data.carouselAcademicAchievement || { images: [], intervalSeconds: 5 },
                 carouselIctRobotics: data.carouselIctRobotics || { images: [], intervalSeconds: 5 },
                 carouselClassicScience: data.carouselClassicScience || { images: [], intervalSeconds: 5 },
@@ -228,6 +253,10 @@ export default function AdminPage() {
             const data = text ? JSON.parse(text) : {};
             if (isMounted) {
               setCarouselsData({
+                carousel: data.carousel || { images: [], intervalSeconds: 5 },
+                carouselNurseryPrimary: data.carouselNurseryPrimary || { images: [], intervalSeconds: 5 },
+                carouselSecondary: data.carouselSecondary || { images: [], intervalSeconds: 5 },
+                carouselGallery: data.carouselGallery || { images: [], intervalSeconds: 5 },
                 carouselAcademicAchievement: data.carouselAcademicAchievement || { images: [], intervalSeconds: 5 },
                 carouselIctRobotics: data.carouselIctRobotics || { images: [], intervalSeconds: 5 },
                 carouselClassicScience: data.carouselClassicScience || { images: [], intervalSeconds: 5 },
@@ -328,10 +357,7 @@ export default function AdminPage() {
       if (response.ok && data.success) {
         setFeedbackMsg({ type: 'success', text: 'Carousel updated successfully!' });
         
-        // Map the action key back to the state key
-        const stateKey = key === 'academicAchievement' 
-          ? 'carouselAcademicAchievement' 
-          : `carousel${key.charAt(0).toUpperCase() + key.slice(1)}`;
+        const stateKey = getStateKey(key);
         
         setCarouselsData((prev: any) => ({
           ...prev,
@@ -378,8 +404,7 @@ export default function AdminPage() {
 
           imageUrl = urlData.publicUrl;
         } catch (supabaseErr: any) {
-          console.log('Supabase direct upload failed, falling back to local api upload:', supabaseErr);
-          // Fallback to local upload endpoint
+          console.log('Supabase direct upload failed, falling back to api upload:', supabaseErr);
           const formData = new FormData();
           formData.append('file', file);
           const res = await fetch('/api/upload', {
@@ -388,12 +413,11 @@ export default function AdminPage() {
           });
           const data = await res.json();
           if (!res.ok || !data.url) {
-            throw new Error(data.error || 'Failed to upload image file locally');
+            throw new Error(data.error || 'Failed to upload image file');
           }
           imageUrl = data.url;
         }
       } else {
-        // Fallback to local upload endpoint
         const formData = new FormData();
         formData.append('file', file);
         const res = await fetch('/api/upload', {
@@ -402,15 +426,12 @@ export default function AdminPage() {
         });
         const data = await res.json();
         if (!res.ok || !data.url) {
-          throw new Error(data.error || 'Failed to upload image file locally');
+          throw new Error(data.error || 'Failed to upload image file');
         }
         imageUrl = data.url;
       }
 
-      const stateKey = key === 'academicAchievement' 
-        ? 'carouselAcademicAchievement' 
-        : `carousel${key.charAt(0).toUpperCase() + key.slice(1)}`;
-      
+      const stateKey = getStateKey(key);
       const currentImages = carouselsData[stateKey]?.images || [];
       const updatedImages = [...currentImages, imageUrl];
       
@@ -492,35 +513,23 @@ export default function AdminPage() {
   };
 
   const handleDeleteCarouselImage = async (key: string, indexToDelete: number) => {
-    const stateKey = key === 'academicAchievement' 
-      ? 'carouselAcademicAchievement' 
-      : `carousel${key.charAt(0).toUpperCase() + key.slice(1)}`;
-    
+    const stateKey = getStateKey(key);
     const currentImages = carouselsData[stateKey]?.images || [];
     const updatedImages = currentImages.filter((_: any, idx: number) => idx !== indexToDelete);
-    
     await handleSaveCarousel(key, updatedImages, carouselsData[stateKey]?.intervalSeconds || 5);
   };
 
   const handleAddCarouselImageByLink = async (key: string, url: string) => {
     if (!url) return;
-    const stateKey = key === 'academicAchievement' 
-      ? 'carouselAcademicAchievement' 
-      : `carousel${key.charAt(0).toUpperCase() + key.slice(1)}`;
-    
+    const stateKey = getStateKey(key);
     const currentImages = carouselsData[stateKey]?.images || [];
     const updatedImages = [...currentImages, url];
-    
     await handleSaveCarousel(key, updatedImages, carouselsData[stateKey]?.intervalSeconds || 5);
   };
 
   const handleChangeCarouselInterval = async (key: string, interval: number) => {
-    const stateKey = key === 'academicAchievement' 
-      ? 'carouselAcademicAchievement' 
-      : `carousel${key.charAt(0).toUpperCase() + key.slice(1)}`;
-    
+    const stateKey = getStateKey(key);
     const currentImages = carouselsData[stateKey]?.images || [];
-    
     await handleSaveCarousel(key, currentImages, interval);
   };
 
@@ -1458,8 +1467,12 @@ export default function AdminPage() {
 
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8" id="carousels-grid">
                           {[
+                            { key: 'default', stateKey: 'carousel', label: 'Main Home Page Hero Banner', description: 'Primary hero slide background images rotating on the home page header' },
+                            { key: 'nurseryPrimary', stateKey: 'carouselNurseryPrimary', label: 'Nursery & Primary School', description: 'Rotating images for Nursery & Primary section on Academics page' },
+                            { key: 'secondary', stateKey: 'carouselSecondary', label: 'Secondary School & College', description: 'Rotating images for Secondary & College section on Academics page' },
+                            { key: 'gallery', stateKey: 'carouselGallery', label: 'Campus Gallery Overview', description: 'Rotating images for the main Campus Gallery header overview' },
                             { key: 'event', stateKey: 'carouselEvent', label: 'Featured Event Highlights', description: 'Rotating images for Featured Event Highlights on the gallery page' },
-                            { key: 'academicAchievement', stateKey: 'carouselAcademicAchievement', label: 'Academic Achievement', description: 'Rotating images for Academic Achievement slide on the home page' },
+                            { key: 'academicAchievement', stateKey: 'carouselAcademicAchievement', label: 'Academic Achievement', description: 'Rotating images for Academic Achievement slide on home and news pages' },
                             { key: 'ictRobotics', stateKey: 'carouselIctRobotics', label: 'ICT & Robotics Lab', description: 'Rotating images for ICT and Robotics Lab slide on the home page' },
                             { key: 'classicScience', stateKey: 'carouselClassicScience', label: 'Classic Science Laboratory', description: 'Rotating images for Classic Science Laboratory slide on the home page' },
                             { key: 'physicalLibrary', stateKey: 'carouselPhysicalLibrary', label: 'Physical & Digital Library', description: 'Rotating images for Physical and Digital Library slide on the home page' },
