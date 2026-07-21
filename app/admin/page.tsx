@@ -13,17 +13,7 @@ import {
   Home, ArrowLeft, Images, Upload
 } from 'lucide-react';
 
-// Inline Supabase Initialization
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
-const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
-  }
-});
+import { supabase, supabaseUrl, supabaseAnonKey, isSupabaseConfigured } from '@/lib/supabase';
 
 // TypeScript Interfaces matching the requested Database Schema
 interface Inquiry {
@@ -147,14 +137,6 @@ export default function AdminPage() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const isSupabaseConfigured = 
-    supabaseUrl && 
-    !supabaseUrl.includes('placeholder-project') && 
-    !supabaseUrl.includes('your-supabase-project') &&
-    supabaseAnonKey &&
-    !supabaseAnonKey.includes('placeholder-anon-key') &&
-    !supabaseAnonKey.includes('your-supabase-anon-key');
-
   // Monitor auth status
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -171,7 +153,7 @@ export default function AdminPage() {
     });
 
     return () => subscription.unsubscribe();
-  }, [isSupabaseConfigured]);
+  }, []);
 
   // Clear session on unmount / navigating away from the admin portal
   useEffect(() => {
@@ -183,7 +165,7 @@ export default function AdminPage() {
         }
       }
     };
-  }, [isSupabaseConfigured]);
+  }, []);
 
   // Fetch data when session changes or tab changes or trigger fires
   useEffect(() => {
@@ -274,7 +256,7 @@ export default function AdminPage() {
     return () => {
       isMounted = false;
     };
-  }, [session, activeTab, refreshTrigger, isSupabaseConfigured]);
+  }, [session, activeTab, refreshTrigger]);
 
   // Login handler
   const handleLogin = async (e: React.FormEvent) => {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,16 +20,6 @@ export async function POST(req: NextRequest) {
     // Read arrayBuffer ONCE at the start to prevent stream-already-read errors on fallback
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    const isSupabaseConfigured = 
-      url && 
-      !url.includes("placeholder-project") && 
-      !url.includes("your-supabase-project") &&
-      anonKey &&
-      !anonKey.includes("placeholder-anon-key") &&
-      !anonKey.includes("your-supabase-anon-key");
 
     if (isSupabaseConfigured) {
       try {
@@ -57,8 +47,9 @@ export async function POST(req: NextRequest) {
         const { data, error } = await supabase.storage
           .from('school-media')
           .upload(`carousels/${filename}`, buffer, {
-            contentType: file.type,
-            duplex: 'half'
+            contentType: file.type || 'image/jpeg',
+            duplex: 'half',
+            upsert: true
           });
 
         if (!error && data) {
@@ -67,10 +58,18 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ url: urlData.publicUrl });
           }
         }
-        console.log('Supabase storage upload completed: utilizing local storage fallback.');
+        console.log('Supabase storage upload completed: utilizing base64/local fallback.');
       } catch (supabaseErr) {
-        console.log('Supabase upload exception handled: utilizing local storage fallback.');
+        console.log('Supabase upload exception handled: utilizing base64/local fallback.');
       }
+    }
+
+    // Fallback: If image size is <= 5MB, convert to portable Data URL (base64) so it works on all links
+    if (buffer.length <= 5 * 1024 * 1024) {
+      const mimeType = file.type || 'image/jpeg';
+      const base64Data = buffer.toString('base64');
+      const dataUrl = `data:${mimeType};base64,${base64Data}`;
+      return NextResponse.json({ url: dataUrl });
     }
 
     // Fallback: Save locally
@@ -86,7 +85,7 @@ export async function POST(req: NextRequest) {
       await fs.promises.writeFile(filePath, buffer);
       savedPath = `/uploads/${filename}`;
     } catch (fsErr) {
-      console.log('Unable to write to /public/uploads (expected on serverless environments like Vercel). Falling back to /tmp/uploads...');
+      console.log('Unable to write to /public/uploads. Falling back to /tmp/uploads...');
       try {
         if (!fs.existsSync(tempUploadDir)) {
           fs.mkdirSync(tempUploadDir, { recursive: true });
@@ -109,3 +108,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message || 'Failed to process file' }, { status: 500 });
   }
 }
+

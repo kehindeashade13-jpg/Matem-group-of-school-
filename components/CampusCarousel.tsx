@@ -54,6 +54,7 @@ export default function CampusCarousel({
             fill
             className="object-cover"
             referrerPolicy="no-referrer"
+            unoptimized={images[index]?.startsWith('data:') || images[index]?.startsWith('blob:')}
           />
         </motion.div>
       </AnimatePresence>

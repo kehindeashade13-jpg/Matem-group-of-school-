@@ -1,19 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase, saveDatabase, Inquiry, BlogPost, EventItem } from '@/lib/db';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export async function GET() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const isSupabaseConfigured = 
-    url && 
-    !url.includes("placeholder-project") && 
-    !url.includes("your-supabase-project") &&
-    anonKey &&
-    !anonKey.includes("placeholder-anon-key") &&
-    !anonKey.includes("your-supabase-anon-key");
-
   if (isSupabaseConfigured) {
+
     try {
       // Fetch inquiries, posts, events, and carousels from Supabase in parallel
       const [inquiriesRes, postsRes, eventsRes, carouselsRes] = await Promise.all([
@@ -128,16 +119,6 @@ export async function POST(req: NextRequest) {
     if (!action) {
       return NextResponse.json({ error: 'Action parameter is required.' }, { status: 400 });
     }
-
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    const isSupabaseConfigured = 
-      url && 
-      !url.includes("placeholder-project") && 
-      !url.includes("your-supabase-project") &&
-      anonKey &&
-      !anonKey.includes("placeholder-anon-key") &&
-      !anonKey.includes("your-supabase-anon-key");
 
     switch (action) {
       case 'submit_inquiry': {
