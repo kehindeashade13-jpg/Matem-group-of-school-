@@ -1,46 +1,79 @@
 'use client';
 
-// Force Vercel to bypass static cache and query fresh data on every page reload
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import Image from 'next/image';
 
-import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-interface CarouselImage {
-  id: string;
-  image_url: string;
+interface CampusCarouselProps {
+  images?: string[];
+  intervalSeconds?: number;
+  aspectRatio?: string;
+  altText?: string;
+  isHeroBackground?: boolean;
 }
 
-export default function CampusCarousel() {
-  const [images, setImages] = useState<CarouselImage[]>([]);
-  const [currentIndex, setCurrentIndex] = useState<number>(0);
-  const [loading, setLoading] = useState<boolean>(true);
+export default function CampusCarousel({
+  images = [],
+  intervalSeconds = 5,
+  aspectRatio = "aspect-video",
+  altText = "Campus Slide",
+  isHeroBackground = false
+}: CampusCarouselProps) {
+  const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    const loadStorefrontImages = async () => {
-      const { data, error } = await supabase
-        .from('carousel_images')
-        .select('id, image_url')
-        .order('created_at', { ascending: true });
+    if (!images || images.length <= 1) return;
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev + 1) % images.length);
+    }, intervalSeconds * 1000);
+    return () => clearInterval(interval);
+  }, [images, intervalSeconds]);
 
-      if (!error && data) setImages(data);
-      setLoading(false);
-    };
-    loadStorefrontImages();
-  }, []);
-
-  if (loading || images.length === 0) return null;
+  if (!images || images.length === 0) {
+    return (
+      <div className={`w-full h-full min-h-[250px] bg-navy-50 flex items-center justify-center text-gray-400 text-xs font-sans ${isHeroBackground ? '' : 'rounded-xl border'}`}>
+        No images available
+      </div>
+    );
+  }
 
   return (
-    <div style={{ position: 'relative', width: '100%', maxWidth: '1200px', margin: '0 auto', height: '400px', overflow: 'hidden' }}>
-      <img src={images[currentIndex].image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-      <button onClick={() => setCurrentIndex((prev) => (prev - 1 + images.length) % images.length)} style={{ position: 'absolute', top: '50%', left: '10px' }}>❮</button>
-      <button onClick={() => setCurrentIndex((prev) => (prev + 1) % images.length)} style={{ position: 'absolute', top: '50%', right: '10px' }}>❯</button>
+    <div className={`relative w-full h-full overflow-hidden ${isHeroBackground ? '' : 'rounded-2xl shadow-premium'} ${aspectRatio} bg-navy-900`}>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={index}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.8, ease: "easeInOut" }}
+          className="absolute inset-0 w-full h-full"
+        >
+          <Image
+            src={images[index]}
+            alt={`${altText} - Slide ${index + 1}`}
+            fill
+            className="object-cover"
+            referrerPolicy="no-referrer"
+            unoptimized={images[index]?.startsWith('data:') || images[index]?.startsWith('blob:')}
+          />
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Progress Dots */}
+      {images.length > 1 && !isHeroBackground && (
+        <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-1.5 z-10">
+          {images.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setIndex(idx)}
+              className={`w-1.5 h-1.5 rounded-full transition-all cursor-pointer ${
+                idx === index ? 'bg-gold-500 w-4' : 'bg-white/50 hover:bg-white'
+              }`}
+              title={`Go to slide ${idx + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

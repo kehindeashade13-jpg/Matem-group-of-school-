@@ -194,7 +194,10 @@ export default function AcademicsPage() {
                   </div>
                   <div className="lg:col-span-5 relative min-h-[250px] sm:min-h-[320px] rounded-2xl overflow-hidden shadow-premium">
                     <CampusCarousel
-                      
+                      images={nurseryPrimaryImages}
+                      intervalSeconds={nurseryPrimaryInterval}
+                      altText="Matem Private School"
+                      aspectRatio="h-full w-full"
                     />
                   </div>
                 </div>

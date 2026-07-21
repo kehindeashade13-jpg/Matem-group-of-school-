@@ -182,7 +182,13 @@ export default function HomePage() {
               transition={{ duration: 0.8, ease: "easeInOut" }}
               className="absolute inset-0 w-full h-full"
             >
-              <CampusCarousel />
+              <CampusCarousel
+                images={getSlideImages(heroIndex)}
+                intervalSeconds={5}
+                altText={HERO_SLIDES[heroIndex].title}
+                aspectRatio="w-full h-full"
+                isHeroBackground={true}
+              />
             </motion.div>
           </AnimatePresence>
         </div>
@@ -424,6 +430,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+
 
       {/* Parents/Alumni Testimonials */}
       <section id="testimonials-section" className="py-20 bg-navy-800 text-white relative overflow-hidden">
@@ -681,4 +689,3 @@ export default function HomePage() {
     </>
   );
 }
-                        
