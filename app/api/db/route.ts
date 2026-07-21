@@ -8,11 +8,12 @@ export async function GET() {
 
   if (isSupabaseConfigured) {
     try {
-      // Fetch inquiries, posts, and events from Supabase in parallel
-      const [inquiriesRes, postsRes, eventsRes] = await Promise.all([
+      // Fetch inquiries, posts, events, and carousels from Supabase in parallel
+      const [inquiriesRes, postsRes, eventsRes, carouselsRes] = await Promise.all([
         supabase.from('inquiries').select('*').order('created_at', { ascending: false }),
         supabase.from('posts').select('*').order('created_at', { ascending: false }),
-        supabase.from('events').select('*').order('created_at', { ascending: false })
+        supabase.from('events').select('*').order('created_at', { ascending: false }),
+        supabase.from('carousels').select('*')
       ]);
 
       if (inquiriesRes.error) console.error("Error fetching inquiries from Supabase:", inquiriesRes.error);
@@ -23,6 +24,7 @@ export async function GET() {
       const inquiriesRaw = inquiriesRes.data || [];
       const postsRaw = postsRes.data || [];
       const eventsRaw = eventsRes.data || [];
+      const carouselsRaw = carouselsRes.data || [];
 
       // Thoroughly sanitize down to primitive properties
       const sanitizedInquiries = inquiriesRaw.map((item: any) => ({
@@ -59,6 +61,28 @@ export async function GET() {
       }));
 
       const db = getDatabase();
+
+      // Override local DB carousels with Supabase values if available
+      carouselsRaw.forEach((row: any) => {
+        const carouselData = {
+          images: row.images || [],
+          intervalSeconds: Number(row.interval_seconds) || 5
+        };
+        if (row.id === 'nurseryPrimary') db.carouselNurseryPrimary = carouselData;
+        else if (row.id === 'secondary') db.carouselSecondary = carouselData;
+        else if (row.id === 'academicAchievement') db.carouselAcademicAchievement = carouselData;
+        else if (row.id === 'gallery') db.carouselGallery = carouselData;
+        else if (row.id === 'event') db.carouselEvent = carouselData;
+        else if (row.id === 'ictRobotics') db.carouselIctRobotics = carouselData;
+        else if (row.id === 'classicScience') db.carouselClassicScience = carouselData;
+        else if (row.id === 'physicalLibrary') db.carouselPhysicalLibrary = carouselData;
+        else if (row.id === 'crechePlayground') db.carouselCrechePlayground = carouselData;
+        else if (row.id === 'modernClinic') db.carouselModernClinic = carouselData;
+        else if (row.id === 'sportsGala') db.carouselSportsGala = carouselData;
+        else if (row.id === 'graduationGala') db.carouselGraduationGala = carouselData;
+        else if (row.id === 'default' || row.id === 'carousel') db.carousel = carouselData;
+      });
+
       return NextResponse.json({
         inquiries: sanitizedInquiries,
         posts: sanitizedPosts,
@@ -462,6 +486,25 @@ export async function POST(req: NextRequest) {
         }
 
         saveDatabase(db);
+
+        if (isSupabaseConfigured) {
+          try {
+            const { error: upsertError } = await supabase
+              .from('carousels')
+              .upsert({
+                id: key || 'default',
+                images,
+                interval_seconds: Number(intervalSeconds) || 5,
+                updated_at: new Date().toISOString()
+              });
+            if (upsertError) {
+              console.error("Supabase carousel upsert returned status: fallback active.", upsertError);
+            }
+          } catch (supaErr) {
+            console.error("Exception upserting carousel to Supabase:", supaErr);
+          }
+        }
+
         return NextResponse.json({ success: true, db });
       }
 

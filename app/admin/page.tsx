@@ -343,28 +343,60 @@ export default function AdminPage() {
     setLoading(true);
     setFeedbackMsg(null);
     try {
-      const fileExt = file.name.split('.').pop() || 'jpg';
-      const cleanFileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = `carousels/${cleanFileName}`;
+      let imageUrl = '';
+      if (isSupabaseConfigured) {
+        try {
+          const fileExt = file.name.split('.').pop() || 'jpg';
+          const cleanFileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+          const filePath = `carousels/${cleanFileName}`;
 
-      const { data, error } = await supabase.storage
-        .from('school-media')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
+          const { data, error } = await supabase.storage
+            .from('school-media')
+            .upload(filePath, file, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (error) throw error;
+
+          const { data: urlData } = supabase.storage
+            .from('school-media')
+            .getPublicUrl(filePath);
+
+          if (!urlData || !urlData.publicUrl) {
+            throw new Error('Failed to retrieve public URL from Supabase storage.');
+          }
+
+          imageUrl = urlData.publicUrl;
+        } catch (supabaseErr: any) {
+          console.log('Supabase direct upload failed, falling back to local api upload:', supabaseErr);
+          // Fallback to local upload endpoint
+          const formData = new FormData();
+          formData.append('file', file);
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await res.json();
+          if (!res.ok || !data.url) {
+            throw new Error(data.error || 'Failed to upload image file locally');
+          }
+          imageUrl = data.url;
+        }
+      } else {
+        // Fallback to local upload endpoint
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
         });
-
-      if (error) throw error;
-
-      const { data: urlData } = supabase.storage
-        .from('school-media')
-        .getPublicUrl(filePath);
-
-      if (!urlData || !urlData.publicUrl) {
-        throw new Error('Failed to retrieve public URL from Supabase storage.');
+        const data = await res.json();
+        if (!res.ok || !data.url) {
+          throw new Error(data.error || 'Failed to upload image file locally');
+        }
+        imageUrl = data.url;
       }
-
-      const imageUrl = urlData.publicUrl;
 
       const stateKey = key === 'academicAchievement' 
         ? 'carouselAcademicAchievement' 
@@ -387,28 +419,60 @@ export default function AdminPage() {
     setLoading(true);
     setFeedbackMsg(null);
     try {
-      const fileExt = file.name.split('.').pop() || 'jpg';
-      const cleanFileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = `carousels/${cleanFileName}`;
+      let imageUrl = '';
+      if (isSupabaseConfigured) {
+        try {
+          const fileExt = file.name.split('.').pop() || 'jpg';
+          const cleanFileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+          const filePath = `carousels/${cleanFileName}`;
 
-      const { data, error } = await supabase.storage
-        .from('school-media')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
+          const { data, error } = await supabase.storage
+            .from('school-media')
+            .upload(filePath, file, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (error) throw error;
+
+          const { data: urlData } = supabase.storage
+            .from('school-media')
+            .getPublicUrl(filePath);
+
+          if (!urlData || !urlData.publicUrl) {
+            throw new Error('Failed to retrieve public URL from Supabase storage.');
+          }
+
+          imageUrl = urlData.publicUrl;
+        } catch (supabaseErr: any) {
+          console.log('Supabase direct upload failed for article image, falling back to local api upload:', supabaseErr);
+          const formData = new FormData();
+          formData.append('file', file);
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await res.json();
+          if (!res.ok || !data.url) {
+            throw new Error(data.error || 'Failed to upload image file locally');
+          }
+          imageUrl = data.url;
+        }
+      } else {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
         });
-
-      if (error) throw error;
-
-      const { data: urlData } = supabase.storage
-        .from('school-media')
-        .getPublicUrl(filePath);
-
-      if (!urlData || !urlData.publicUrl) {
-        throw new Error('Failed to retrieve public URL from Supabase storage.');
+        const data = await res.json();
+        if (!res.ok || !data.url) {
+          throw new Error(data.error || 'Failed to upload image file locally');
+        }
+        imageUrl = data.url;
       }
 
-      setPostImage(urlData.publicUrl);
+      setPostImage(imageUrl);
       setFeedbackMsg({ type: 'success', text: 'Article cover image uploaded successfully!' });
     } catch (err: any) {
       console.error('Upload error:', err);
