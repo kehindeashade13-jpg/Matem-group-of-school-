@@ -1265,7 +1265,7 @@ export default function AdminPage() {
                                     </button>
                                     <button
                                       onClick={() => handleDelete(post.id, 'posts')}
-                                      className="p-1.5 text-red-600 hover:text-red-955 hover:bg-red-50 rounded-lg transition-all inline-block"
+                                      className="p-1.5 text-red-600 hover:text-red-950 hover:bg-red-50 rounded-lg transition-all inline-block"
                                       title="Delete Article"
                                       id={`delete-post-btn-${post.id}`}
                                     >
@@ -1343,7 +1343,7 @@ export default function AdminPage() {
                                     </button>
                                     <button
                                       onClick={() => handleDelete(evt.id, 'events')}
-                                      className="p-1.5 text-red-600 hover:text-red-955 hover:bg-red-50 rounded-lg transition-all inline-block"
+                                      className="p-1.5 text-red-600 hover:text-red-950 hover:bg-red-50 rounded-lg transition-all inline-block"
                                       title="Delete Event"
                                       id={`delete-event-btn-${evt.id}`}
                                     >
@@ -1910,8 +1910,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-
-
-                  
-       
