@@ -21,7 +21,7 @@ const HERO_SLIDES = [
     title: "Nurturing Excellence",
     subtitle: "From Nursery to Secondary",
     description: "Welcome to Matem Schools, where we empower tomorrow's innovators, scientists, and leaders under a single supportive and highly disciplined academic system.",
-    image: "https://picsum.photos/seed/learn/1920/1080",
+    image: "/images/matem_pupils_uniform.jpg",
     ctaText: "Apply Now",
     ctaLink: "/admissions"
   },
@@ -97,7 +97,7 @@ export default function HomePage() {
     // Fetch latest news, events, and carousels
     const fetchDb = async () => {
       try {
-        const response = await fetch('/api/db');
+        const response = await fetch(`/api/db?t=${Date.now()}`, { cache: 'no-store' });
         if (response.ok) {
           const text = await response.text();
           const data = text ? JSON.parse(text) : {};
@@ -353,8 +353,8 @@ export default function HomePage() {
               <div>
                 <div className="relative h-64 overflow-hidden">
                   <Image
-                    src="https://picsum.photos/seed/primary_arm/800/600"
-                    alt="Matem Private School Classroom"
+                    src="/images/matem_pupils_uniform.jpg"
+                    alt="Matem Private School Pupils"
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                     referrerPolicy="no-referrer"
@@ -393,8 +393,8 @@ export default function HomePage() {
               <div>
                 <div className="relative h-64 overflow-hidden">
                   <Image
-                    src="https://picsum.photos/seed/college_arm/800/600"
-                    alt="Matem College Laboratory"
+                    src="/images/college_students.jpg"
+                    alt="Matem College Students"
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                     referrerPolicy="no-referrer"

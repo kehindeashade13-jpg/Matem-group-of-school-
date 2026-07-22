@@ -43,7 +43,7 @@ export default function GalleryPage() {
   useEffect(() => {
     const fetchEventsAndCarousels = async () => {
       try {
-        const response = await fetch('/api/db');
+        const response = await fetch(`/api/db?t=${Date.now()}`, { cache: 'no-store' });
         if (response.ok) {
           const text = await response.text();
           const data = text ? JSON.parse(text) : {};

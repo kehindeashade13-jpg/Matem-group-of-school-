@@ -74,12 +74,14 @@ const EXTRACURRICULAR = [
 export default function AcademicsPage() {
   const [activeTab, setActiveTab] = useState<'primary' | 'college'>('primary');
   const [nurseryPrimaryImages, setNurseryPrimaryImages] = useState<string[]>([
+    '/images/matem_pupils_uniform.jpg',
     'https://picsum.photos/seed/primary_class/600/500',
     'https://picsum.photos/seed/primary_play/600/500',
     'https://picsum.photos/seed/primary_draw/600/500'
   ]);
   const [nurseryPrimaryInterval, setNurseryPrimaryInterval] = useState(5);
   const [secondaryImages, setSecondaryImages] = useState<string[]>([
+    '/images/college_students.jpg',
     'https://picsum.photos/seed/college_student/600/500',
     'https://picsum.photos/seed/college_math/600/500',
     'https://picsum.photos/seed/college_lab/600/500'
@@ -89,7 +91,7 @@ export default function AcademicsPage() {
   useEffect(() => {
     const fetchCarousels = async () => {
       try {
-        const response = await fetch('/api/db');
+        const response = await fetch(`/api/db?t=${Date.now()}`, { cache: 'no-store' });
         if (response.ok) {
           const text = await response.text();
           const data = text ? JSON.parse(text) : {};

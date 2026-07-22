@@ -198,7 +198,7 @@ export default function AdminPage() {
       setFeedbackMsg(null);
       try {
         if (!isSupabaseConfigured) {
-          const res = await fetch('/api/db');
+          const res = await fetch(`/api/db?t=${Date.now()}`, { cache: 'no-store' });
           if (res.ok) {
             const data = await res.json();
             if (isMounted) {
@@ -247,7 +247,7 @@ export default function AdminPage() {
           if (error) throw error;
           if (isMounted) setEvents(data || []);
         } else if (activeTab === 'carousels') {
-          const res = await fetch('/api/db');
+          const res = await fetch(`/api/db?t=${Date.now()}`, { cache: 'no-store' });
           if (res.ok) {
             const text = await res.text();
             const data = text ? JSON.parse(text) : {};

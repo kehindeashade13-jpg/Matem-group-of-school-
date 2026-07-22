@@ -176,7 +176,7 @@ const INITIAL_INQUIRIES: Inquiry[] = [
 export function getDatabase(): SchoolDatabase {
   const defaultCarousel: CarouselSettings = {
     images: [
-      'https://picsum.photos/seed/learn/1920/1080',
+      '/images/matem_pupils_uniform.jpg',
       'https://picsum.photos/seed/playground/1920/1080',
       'https://picsum.photos/seed/chemistry/1920/1080'
     ],
@@ -185,6 +185,7 @@ export function getDatabase(): SchoolDatabase {
 
   const defaultNurseryPrimary: CarouselSettings = {
     images: [
+      '/images/matem_pupils_uniform.jpg',
       'https://picsum.photos/seed/nursery1/1200/800',
       'https://picsum.photos/seed/nursery2/1200/800'
     ],
@@ -193,6 +194,7 @@ export function getDatabase(): SchoolDatabase {
 
   const defaultSecondary: CarouselSettings = {
     images: [
+      '/images/college_students.jpg',
       'https://picsum.photos/seed/secondary1/1200/800',
       'https://picsum.photos/seed/secondary2/1200/800'
     ],
@@ -250,6 +252,7 @@ export function getDatabase(): SchoolDatabase {
 
   const defaultCrechePlayground: CarouselSettings = {
     images: [
+      '/images/nursery_primary_fruit_day.jpg',
       'https://picsum.photos/seed/playground/1200/800',
       'https://picsum.photos/seed/playground2/1200/800'
     ],

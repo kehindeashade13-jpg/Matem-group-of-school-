@@ -67,8 +67,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Fallback: If image size is <= 5MB, convert to portable Data URL (base64) so it works on all links
-    if (buffer.length <= 5 * 1024 * 1024) {
+    // Fallback: Convert to portable Data URL (base64) up to 15MB so it works on all live links & deployments
+    if (buffer.length <= 15 * 1024 * 1024) {
       const mimeType = file.type || 'image/jpeg';
       const base64Data = buffer.toString('base64');
       const dataUrl = `data:${mimeType};base64,${base64Data}`;

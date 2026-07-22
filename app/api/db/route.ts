@@ -101,17 +101,29 @@ export async function GET() {
         carouselModernClinic: db.carouselModernClinic,
         carouselSportsGala: db.carouselSportsGala,
         carouselGraduationGala: db.carouselGraduationGala
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
+        }
       });
     } catch (err) {
       console.error("Supabase API error in GET /api/db:", err);
       // Fallback to local DB on failure
       const db = getDatabase();
-      return NextResponse.json(db);
+      return NextResponse.json(db, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
+        }
+      });
     }
   }
 
   const db = getDatabase();
-  return NextResponse.json(db);
+  return NextResponse.json(db, {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
+    }
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -327,22 +339,65 @@ export async function POST(req: NextRequest) {
         if (!id) {
           return NextResponse.json({ error: 'Missing post id.' }, { status: 400 });
         }
-        const db = getDatabase();
-        const index = db.posts.findIndex(p => p.id === id);
-        if (index === -1) {
-          return NextResponse.json({ error: 'Post not found.' }, { status: 404 });
+
+        if (isSupabaseConfigured) {
+          const updateData: any = {};
+          if (title !== undefined) updateData.title = title;
+          if (category !== undefined) updateData.category = category;
+          if (excerpt !== undefined) updateData.excerpt = excerpt;
+          if (content !== undefined) updateData.content = content;
+          if (image !== undefined) updateData.image = image;
+          if (author !== undefined) updateData.author = author;
+
+          const { data, error } = await supabase
+            .from('posts')
+            .update(updateData)
+            .eq('id', id)
+            .select();
+
+          if (error) {
+            console.error("Supabase post update error:", error);
+            return NextResponse.json({ error: error.message }, { status: 500 });
+          }
+
+          const db = getDatabase();
+          const index = db.posts.findIndex(p => p.id === id);
+          if (index !== -1) {
+            db.posts[index] = { ...db.posts[index], ...updateData };
+            saveDatabase(db);
+          }
+
+          return NextResponse.json({ 
+            success: true, 
+            post: data && data.length > 0 ? {
+              id: String(data[0].id || ''),
+              title: String(data[0].title || ''),
+              category: data[0].category || 'School News',
+              excerpt: String(data[0].excerpt || ''),
+              content: String(data[0].content || ''),
+              date: String(data[0].date || ''),
+              image: String(data[0].image || ''),
+              author: String(data[0].author || ''),
+            } : null 
+          });
+        } else {
+          const db = getDatabase();
+          const index = db.posts.findIndex(p => p.id === id);
+          if (index === -1) {
+            return NextResponse.json({ error: 'Post not found.' }, { status: 404 });
+          }
+          db.posts[index] = {
+            ...db.posts[index],
+            title: title || db.posts[index].title,
+            category: category || db.posts[index].category,
+            excerpt: excerpt || db.posts[index].excerpt,
+            content: content || db.posts[index].content,
+            image: image || db.posts[index].image,
+            author: author || db.posts[index].author,
+          };
+          saveDatabase(db);
+          return NextResponse.json({ success: true, post: db.posts[index] });
         }
-        db.posts[index] = {
-          ...db.posts[index],
-          title: title || db.posts[index].title,
-          category: category || db.posts[index].category,
-          excerpt: excerpt || db.posts[index].excerpt,
-          content: content || db.posts[index].content,
-          image: image || db.posts[index].image,
-          author: author || db.posts[index].author,
-        };
-        saveDatabase(db);
-        return NextResponse.json({ success: true, post: db.posts[index] });
       }
 
       case 'create_event': {
@@ -425,22 +480,64 @@ export async function POST(req: NextRequest) {
         if (!id) {
           return NextResponse.json({ error: 'Missing event id.' }, { status: 400 });
         }
-        const db = getDatabase();
-        const index = db.events.findIndex(e => e.id === id);
-        if (index === -1) {
-          return NextResponse.json({ error: 'Event not found.' }, { status: 404 });
+
+        if (isSupabaseConfigured) {
+          const updateData: any = {};
+          if (title !== undefined) updateData.title = title;
+          if (description !== undefined) updateData.description = description;
+          if (date !== undefined) updateData.date = date;
+          if (time !== undefined) updateData.time = time;
+          if (location !== undefined) updateData.location = location;
+          if (category !== undefined) updateData.category = category;
+
+          const { data, error } = await supabase
+            .from('events')
+            .update(updateData)
+            .eq('id', id)
+            .select();
+
+          if (error) {
+            console.error("Supabase event update error:", error);
+            return NextResponse.json({ error: error.message }, { status: 500 });
+          }
+
+          const db = getDatabase();
+          const index = db.events.findIndex(e => e.id === id);
+          if (index !== -1) {
+            db.events[index] = { ...db.events[index], ...updateData };
+            saveDatabase(db);
+          }
+
+          return NextResponse.json({ 
+            success: true, 
+            event: data && data.length > 0 ? {
+              id: String(data[0].id || ''),
+              title: String(data[0].title || ''),
+              description: String(data[0].description || ''),
+              date: String(data[0].date || ''),
+              time: String(data[0].time || ''),
+              location: String(data[0].location || ''),
+              category: data[0].category || 'academic',
+            } : null 
+          });
+        } else {
+          const db = getDatabase();
+          const index = db.events.findIndex(e => e.id === id);
+          if (index === -1) {
+            return NextResponse.json({ error: 'Event not found.' }, { status: 404 });
+          }
+          db.events[index] = {
+            ...db.events[index],
+            title: title || db.events[index].title,
+            description: description || db.events[index].description,
+            date: date || db.events[index].date,
+            time: time || db.events[index].time,
+            location: location || db.events[index].location,
+            category: category || db.events[index].category,
+          };
+          saveDatabase(db);
+          return NextResponse.json({ success: true, event: db.events[index] });
         }
-        db.events[index] = {
-          ...db.events[index],
-          title: title || db.events[index].title,
-          description: description || db.events[index].description,
-          date: date || db.events[index].date,
-          time: time || db.events[index].time,
-          location: location || db.events[index].location,
-          category: category || db.events[index].category,
-        };
-        saveDatabase(db);
-        return NextResponse.json({ success: true, event: db.events[index] });
       }
 
       case 'update_carousel': {
