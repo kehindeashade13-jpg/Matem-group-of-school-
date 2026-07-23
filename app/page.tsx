@@ -21,7 +21,7 @@ const HERO_SLIDES = [
     title: "Nurturing Excellence",
     subtitle: "From Nursery to Secondary",
     description: "Welcome to Matem Schools, where we empower tomorrow's innovators, scientists, and leaders under a single supportive and highly disciplined academic system.",
-    image: "/images/matem_pupils_uniform.jpg",
+    image: "/images/matem_school_promo.jpg",
     ctaText: "Apply Now",
     ctaLink: "/admissions"
   },

@@ -74,17 +74,16 @@ const EXTRACURRICULAR = [
 export default function AcademicsPage() {
   const [activeTab, setActiveTab] = useState<'primary' | 'college'>('primary');
   const [nurseryPrimaryImages, setNurseryPrimaryImages] = useState<string[]>([
+    '/images/matem_school_promo.jpg',
     '/images/matem_pupils_uniform.jpg',
-    'https://picsum.photos/seed/primary_class/600/500',
-    'https://picsum.photos/seed/primary_play/600/500',
-    'https://picsum.photos/seed/primary_draw/600/500'
+    '/images/matem_private_school.jpg',
+    '/images/nursery_primary_school.jpg'
   ]);
   const [nurseryPrimaryInterval, setNurseryPrimaryInterval] = useState(5);
   const [secondaryImages, setSecondaryImages] = useState<string[]>([
+    '/images/matem_college_promo.jpg',
     '/images/college_students.jpg',
-    'https://picsum.photos/seed/college_student/600/500',
-    'https://picsum.photos/seed/college_math/600/500',
-    'https://picsum.photos/seed/college_lab/600/500'
+    '/images/matem_college.jpg'
   ]);
   const [secondaryInterval, setSecondaryInterval] = useState(5);
 
@@ -96,13 +95,21 @@ export default function AcademicsPage() {
           const text = await response.text();
           const data = text ? JSON.parse(text) : {};
           if (data.carouselNurseryPrimary && data.carouselNurseryPrimary.images?.length > 0) {
-            setNurseryPrimaryImages(data.carouselNurseryPrimary.images);
+            const fetched = data.carouselNurseryPrimary.images;
+            if (!fetched.includes('/images/matem_school_promo.jpg')) {
+              fetched.unshift('/images/matem_school_promo.jpg');
+            }
+            setNurseryPrimaryImages(fetched);
             if (data.carouselNurseryPrimary.intervalSeconds) {
               setNurseryPrimaryInterval(data.carouselNurseryPrimary.intervalSeconds);
             }
           }
           if (data.carouselSecondary && data.carouselSecondary.images?.length > 0) {
-            setSecondaryImages(data.carouselSecondary.images);
+            const fetched = data.carouselSecondary.images;
+            if (!fetched.includes('/images/matem_college_promo.jpg')) {
+              fetched.unshift('/images/matem_college_promo.jpg');
+            }
+            setSecondaryImages(fetched);
             if (data.carouselSecondary.intervalSeconds) {
               setSecondaryInterval(data.carouselSecondary.intervalSeconds);
             }

@@ -187,7 +187,8 @@ export function getDatabase(): SchoolDatabase {
     images: [
       '/images/matem_school_promo.jpg',
       '/images/matem_pupils_uniform.jpg',
-      'https://picsum.photos/seed/nursery1/1200/800'
+      '/images/matem_private_school.jpg',
+      '/images/nursery_primary_school.jpg'
     ],
     intervalSeconds: 5
   };
@@ -196,7 +197,7 @@ export function getDatabase(): SchoolDatabase {
     images: [
       '/images/matem_college_promo.jpg',
       '/images/college_students.jpg',
-      'https://picsum.photos/seed/secondary1/1200/800'
+      '/images/matem_college.jpg'
     ],
     intervalSeconds: 5
   };

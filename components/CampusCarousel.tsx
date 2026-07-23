@@ -39,7 +39,7 @@ export default function CampusCarousel({
     );
   }
 
-  const currentSrc = imageErrorMap[index] ? 'https://picsum.photos/seed/matem_school/1200/800' : images[index];
+  const currentSrc = imageErrorMap[index] ? '/images/matem_school_promo.jpg' : images[index];
 
   return (
     <div className={`relative w-full h-full overflow-hidden ${isHeroBackground ? '' : 'rounded-2xl shadow-premium'} ${aspectRatio} bg-navy-900`}>
