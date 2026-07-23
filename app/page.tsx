@@ -353,7 +353,7 @@ export default function HomePage() {
               <div>
                 <div className="relative h-64 overflow-hidden">
                   <Image
-                    src="/images/matem_pupils_uniform.jpg"
+                    src="/images/matem_school_promo.jpg"
                     alt="Matem Private School Pupils"
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -393,7 +393,7 @@ export default function HomePage() {
               <div>
                 <div className="relative h-64 overflow-hidden">
                   <Image
-                    src="/images/college_students.jpg"
+                    src="/images/matem_college_promo.jpg"
                     alt="Matem College Students"
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"

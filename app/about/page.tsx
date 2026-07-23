@@ -133,7 +133,7 @@ export default function AboutPage() {
 
             <div className="relative h-[400px] rounded-2xl overflow-hidden shadow-premium border-4 border-white">
               <Image
-                src="https://picsum.photos/seed/founding/800/600"
+                src="/images/matem_school_promo.jpg"
                 alt="Matem School building"
                 fill
                 className="object-cover"
