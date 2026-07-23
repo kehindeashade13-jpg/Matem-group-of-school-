@@ -381,7 +381,6 @@ export default function AdminPage() {
       const formData = new FormData();
       formData.append('file', file);
 
-      // Directly call our working backend upload API route
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
@@ -393,114 +392,15 @@ export default function AdminPage() {
       }
 
       const imageUrl = data.url;
-
-      // Safely append the fresh public URL into your carousel list
-      const currentImages = currentData[key]?.images || [];
+      const currentImages = carouselsData[getStateKey(key)]?.images || [];
       const updatedImages = [...currentImages, imageUrl];
       
-      // Save directly to your live database
-      await handleSaveCarousel(key, updatedImages, currentData[key]?.intervalSeconds || 5);
+      await handleSaveCarousel(key, updatedImages, carouselsData[getStateKey(key)]?.intervalSeconds || 5);
       
       setFeedbackMsg({ type: 'success', text: 'Image uploaded successfully!' });
     } catch (error: any) {
       console.error('Upload Error:', error);
       setFeedbackMsg({ type: 'error', text: error.message || 'Upload failed' });
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-        }
-      } else {
-        const formData = new FormData();
-        formData.append('file', file);
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-        const data = await res.json();
-        if (!res.ok || !data.url) {
-          throw new Error(data.error || 'Failed to upload image file');
-        }
-        imageUrl = data.url;
-      }
-
-      const stateKey = getStateKey(key);
-      const currentImages = carouselsData[stateKey]?.images || [];
-      const updatedImages = [...currentImages, imageUrl];
-      
-      await handleSaveCarousel(key, updatedImages, carouselsData[stateKey]?.intervalSeconds || 5);
-      setFeedbackMsg({ type: 'success', text: 'Image uploaded and carousel updated successfully!' });
-    } catch (err: any) {
-      console.error('Upload error:', err);
-      setFeedbackMsg({ type: 'error', text: err.message || 'Failed to upload image.' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUploadPostImage = async (file: File) => {
-    setLoading(true);
-    setFeedbackMsg(null);
-    try {
-      let imageUrl = '';
-      if (isSupabaseConfigured) {
-        try {
-          const fileExt = file.name.split('.').pop() || 'jpg';
-          const cleanFileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-          const filePath = `carousels/${cleanFileName}`;
-
-          const { data, error } = await supabase.storage
-            .from('school-media')
-            .upload(filePath, file, {
-              cacheControl: '3600',
-              upsert: false
-            });
-
-          if (error) throw error;
-
-          const { data: urlData } = supabase.storage
-            .from('school-media')
-            .getPublicUrl(filePath);
-
-          if (!urlData || !urlData.publicUrl) {
-            throw new Error('Failed to retrieve public URL from Supabase storage.');
-          }
-
-          imageUrl = urlData.publicUrl;
-        } catch (supabaseErr: any) {
-          console.log('Supabase direct upload failed for article image, falling back to local api upload:', supabaseErr);
-          const formData = new FormData();
-          formData.append('file', file);
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData,
-          });
-          const data = await res.json();
-          if (!res.ok || !data.url) {
-            throw new Error(data.error || 'Failed to upload image file locally');
-          }
-          imageUrl = data.url;
-        }
-      } else {
-        const formData = new FormData();
-        formData.append('file', file);
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-        const data = await res.json();
-        if (!res.ok || !data.url) {
-          throw new Error(data.error || 'Failed to upload image file locally');
-        }
-        imageUrl = data.url;
-      }
-
-      setPostImage(imageUrl);
-      setFeedbackMsg({ type: 'success', text: 'Article cover image uploaded successfully!' });
-    } catch (err: any) {
-      console.error('Upload error:', err);
-      setFeedbackMsg({ type: 'error', text: err.message || 'Failed to upload image.' });
     } finally {
       setLoading(false);
     }
