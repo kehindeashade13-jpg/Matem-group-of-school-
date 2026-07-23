@@ -21,6 +21,8 @@ export default function CampusCarousel({
 }: CampusCarouselProps) {
   const [index, setIndex] = useState(0);
 
+  const [imageErrorMap, setImageErrorMap] = useState<Record<number, boolean>>({});
+
   useEffect(() => {
     if (!images || images.length <= 1) return;
     const interval = setInterval(() => {
@@ -37,6 +39,8 @@ export default function CampusCarousel({
     );
   }
 
+  const currentSrc = imageErrorMap[index] ? 'https://picsum.photos/seed/matem_school/1200/800' : images[index];
+
   return (
     <div className={`relative w-full h-full overflow-hidden ${isHeroBackground ? '' : 'rounded-2xl shadow-premium'} ${aspectRatio} bg-navy-900`}>
       <AnimatePresence mode="wait">
@@ -49,12 +53,15 @@ export default function CampusCarousel({
           className="absolute inset-0 w-full h-full"
         >
           <Image
-            src={images[index]}
+            src={currentSrc}
             alt={`${altText} - Slide ${index + 1}`}
             fill
             className="object-cover"
             referrerPolicy="no-referrer"
-            unoptimized={images[index]?.startsWith('data:') || images[index]?.startsWith('blob:')}
+            unoptimized
+            onError={() => {
+              setImageErrorMap((prev) => ({ ...prev, [index]: true }));
+            }}
           />
         </motion.div>
       </AnimatePresence>
