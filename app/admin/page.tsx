@@ -373,30 +373,48 @@ export default function AdminPage() {
       setLoading(false);
     }
   };
-
   const handleUploadImage = async (key: string, file: File) => {
     setLoading(true);
     setFeedbackMsg(null);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      // 1. Create a unique path inside your public 'school-media' bucket
+      const filePath = `${key}/${Date.now()}-${file.name}`;
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      // 2. Upload the raw image file directly to Supabase Storage
+      const { data, error: uploadError } = await supabase.storage
+        .from('school-media')
+        .upload(filePath, file);
 
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        throw new Error(data.error || 'Upload failed');
-      }
+      if (uploadError) throw new Error(uploadError.message);
 
-      const imageUrl = data.url;
-      const currentImages = carouselsData[getStateKey(key)]?.images || [];
+      // 3. Grab the permanent public web URL link for that image
+      const { data: urlData } = supabase.storage
+        .from('school-media')
+        .getPublicUrl(filePath);
+
+      const imageUrl = urlData.publicUrl;
+
+      // 4. Update the image layout array
+      let currentImages = [];
+      if (key === 'carousels') currentImages = carouselsData || [];
+      else if (key === 'posts') currentImages = postsData || [];
+      else if (key === 'events') currentImages = eventsData || [];
+
       const updatedImages = [...currentImages, imageUrl];
-      
-      await handleSaveCarousel(key, updatedImages, carouselsData[getStateKey(key)]?.intervalSeconds || 5);
-      
+
+      // 5. Fire your built-in save configuration function
+      await handleSaveCarousel(key, updatedImages);
+
+      setFeedbackMsg({ type: 'success', text: 'Uploaded successfully!' });
+    } catch (error: any) {
+      console.error('Upload Error:', error);
+      setFeedbackMsg({ type: 'error', text: error.message || 'Upload failed' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  
       setFeedbackMsg({ type: 'success', text: 'Image uploaded successfully!' });
     } catch (error: any) {
       console.error('Upload Error:', error);
