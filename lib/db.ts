@@ -176,27 +176,27 @@ const INITIAL_INQUIRIES: Inquiry[] = [
 export function getDatabase(): SchoolDatabase {
   const defaultCarousel: CarouselSettings = {
     images: [
+      '/images/matem_school_promo.jpg',
       '/images/matem_pupils_uniform.jpg',
-      'https://picsum.photos/seed/playground/1920/1080',
-      'https://picsum.photos/seed/chemistry/1920/1080'
+      'https://picsum.photos/seed/playground/1920/1080'
     ],
     intervalSeconds: 5
   };
 
   const defaultNurseryPrimary: CarouselSettings = {
     images: [
+      '/images/matem_school_promo.jpg',
       '/images/matem_pupils_uniform.jpg',
-      'https://picsum.photos/seed/nursery1/1200/800',
-      'https://picsum.photos/seed/nursery2/1200/800'
+      'https://picsum.photos/seed/nursery1/1200/800'
     ],
     intervalSeconds: 5
   };
 
   const defaultSecondary: CarouselSettings = {
     images: [
+      '/images/matem_college_promo.jpg',
       '/images/college_students.jpg',
-      'https://picsum.photos/seed/secondary1/1200/800',
-      'https://picsum.photos/seed/secondary2/1200/800'
+      'https://picsum.photos/seed/secondary1/1200/800'
     ],
     intervalSeconds: 5
   };
