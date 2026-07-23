@@ -373,52 +373,140 @@ export default function AdminPage() {
       setLoading(false);
     }
   };
+
   const handleUploadImage = async (key: string, file: File) => {
     setLoading(true);
     setFeedbackMsg(null);
     try {
-      // 1. Create a unique path inside your public 'school-media' bucket
-      const filePath = `${key}/${Date.now()}-${file.name}`;
+      let imageUrl = '';
+      if (isSupabaseConfigured) {
+        try {
+          const fileExt = file.name.split('.').pop() || 'jpg';
+          const cleanFileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+          const filePath = `carousels/${cleanFileName}`;
 
-      // 2. Upload the raw image file directly to Supabase Storage
-      const { data, error: uploadError } = await supabase.storage
-        .from('school-media')
-        .upload(filePath, file);
+          const { data, error } = await supabase.storage
+            .from('school-media')
+            .upload(filePath, file, {
+              cacheControl: '3600',
+              upsert: false
+            });
 
-      if (uploadError) throw new Error(uploadError.message);
+          if (error) throw error;
 
-      // 3. Grab the permanent public web URL link for that image
-      const { data: urlData } = supabase.storage
-        .from('school-media')
-        .getPublicUrl(filePath);
+          const { data: urlData } = supabase.storage
+            .from('school-media')
+            .getPublicUrl(filePath);
 
-      const imageUrl = urlData.publicUrl;
+          if (!urlData || !urlData.publicUrl) {
+            throw new Error('Failed to retrieve public URL from Supabase storage.');
+          }
 
-      // 4. Update the image layout array
-      let currentImages = [];
-      if (key === 'carousels') currentImages = carouselsData || [];
-      else if (key === 'posts') currentImages = postsData || [];
-      else if (key === 'events') currentImages = eventsData || [];
+          imageUrl = urlData.publicUrl;
+        } catch (supabaseErr: any) {
+          console.log('Supabase direct upload failed, falling back to api upload:', supabaseErr);
+          const formData = new FormData();
+          formData.append('file', file);
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await res.json();
+          if (!res.ok || !data.url) {
+            throw new Error(data.error || 'Failed to upload image file');
+          }
+          imageUrl = data.url;
+        }
+      } else {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+        if (!res.ok || !data.url) {
+          throw new Error(data.error || 'Failed to upload image file');
+        }
+        imageUrl = data.url;
+      }
 
+      const stateKey = getStateKey(key);
+      const currentImages = carouselsData[stateKey]?.images || [];
       const updatedImages = [...currentImages, imageUrl];
-
-      // 5. Fire your built-in save configuration function
-      await handleSaveCarousel(key, updatedImages);
-
-      setFeedbackMsg({ type: 'success', text: 'Uploaded successfully!' });
-    } catch (error: any) {
-      console.error('Upload Error:', error);
-      setFeedbackMsg({ type: 'error', text: error.message || 'Upload failed' });
+      
+      await handleSaveCarousel(key, updatedImages, carouselsData[stateKey]?.intervalSeconds || 5);
+      setFeedbackMsg({ type: 'success', text: 'Image uploaded and carousel updated successfully!' });
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      setFeedbackMsg({ type: 'error', text: err.message || 'Failed to upload image.' });
     } finally {
       setLoading(false);
     }
   };
 
-  
-      setFeedbackMsg({ type: 'success', text: 'Image uploaded successfully!' });
-    } catch (error: any) {
-      console.error('Upload Error:', error);
-      setFeedbackMsg({ type: 'error', text: error.message || 'Upload failed' });
+  const handleUploadPostImage = async (file: File) => {
+    setLoading(true);
+    setFeedbackMsg(null);
+    try {
+      let imageUrl = '';
+      if (isSupabaseConfigured) {
+        try {
+          const fileExt = file.name.split('.').pop() || 'jpg';
+          const cleanFileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+          const filePath = `carousels/${cleanFileName}`;
+
+          const { data, error } = await supabase.storage
+            .from('school-media')
+            .upload(filePath, file, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (error) throw error;
+
+          const { data: urlData } = supabase.storage
+            .from('school-media')
+            .getPublicUrl(filePath);
+
+          if (!urlData || !urlData.publicUrl) {
+            throw new Error('Failed to retrieve public URL from Supabase storage.');
+          }
+
+          imageUrl = urlData.publicUrl;
+        } catch (supabaseErr: any) {
+          console.log('Supabase direct upload failed for article image, falling back to local api upload:', supabaseErr);
+          const formData = new FormData();
+          formData.append('file', file);
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await res.json();
+          if (!res.ok || !data.url) {
+            throw new Error(data.error || 'Failed to upload image file locally');
+          }
+          imageUrl = data.url;
+        }
+      } else {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+        if (!res.ok || !data.url) {
+          throw new Error(data.error || 'Failed to upload image file locally');
+        }
+        imageUrl = data.url;
+      }
+
+      setPostImage(imageUrl);
+      setFeedbackMsg({ type: 'success', text: 'Article cover image uploaded successfully!' });
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      setFeedbackMsg({ type: 'error', text: err.message || 'Failed to upload image.' });
     } finally {
       setLoading(false);
     }

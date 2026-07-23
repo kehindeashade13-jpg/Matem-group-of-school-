@@ -67,6 +67,12 @@ export default function GalleryPage() {
       }
     };
     fetchEventsAndCarousels();
+
+    const handleFocus = () => fetchEventsAndCarousels();
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   return (

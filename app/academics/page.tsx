@@ -95,21 +95,13 @@ export default function AcademicsPage() {
           const text = await response.text();
           const data = text ? JSON.parse(text) : {};
           if (data.carouselNurseryPrimary && data.carouselNurseryPrimary.images?.length > 0) {
-            const fetched = data.carouselNurseryPrimary.images;
-            if (!fetched.includes('/images/matem_school_promo.jpg')) {
-              fetched.unshift('/images/matem_school_promo.jpg');
-            }
-            setNurseryPrimaryImages(fetched);
+            setNurseryPrimaryImages(data.carouselNurseryPrimary.images);
             if (data.carouselNurseryPrimary.intervalSeconds) {
               setNurseryPrimaryInterval(data.carouselNurseryPrimary.intervalSeconds);
             }
           }
           if (data.carouselSecondary && data.carouselSecondary.images?.length > 0) {
-            const fetched = data.carouselSecondary.images;
-            if (!fetched.includes('/images/matem_college_promo.jpg')) {
-              fetched.unshift('/images/matem_college_promo.jpg');
-            }
-            setSecondaryImages(fetched);
+            setSecondaryImages(data.carouselSecondary.images);
             if (data.carouselSecondary.intervalSeconds) {
               setSecondaryInterval(data.carouselSecondary.intervalSeconds);
             }
@@ -120,6 +112,12 @@ export default function AcademicsPage() {
       }
     };
     fetchCarousels();
+
+    const handleFocus = () => fetchCarousels();
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   return (

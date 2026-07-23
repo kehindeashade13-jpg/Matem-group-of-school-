@@ -70,15 +70,9 @@ export async function GET() {
           intervalSeconds: Number(row.interval_seconds) || 5
         };
         if (row.id === 'nurseryPrimary') {
-          if (carouselData.images.length > 0 && !carouselData.images.includes('/images/matem_school_promo.jpg')) {
-            carouselData.images.unshift('/images/matem_school_promo.jpg');
-          }
           if (carouselData.images.length > 0) db.carouselNurseryPrimary = carouselData;
         }
         else if (row.id === 'secondary') {
-          if (carouselData.images.length > 0 && !carouselData.images.includes('/images/matem_college_promo.jpg')) {
-            carouselData.images.unshift('/images/matem_college_promo.jpg');
-          }
           if (carouselData.images.length > 0) db.carouselSecondary = carouselData;
         }
         else if (row.id === 'academicAchievement') db.carouselAcademicAchievement = carouselData;
@@ -92,9 +86,6 @@ export async function GET() {
         else if (row.id === 'sportsGala') db.carouselSportsGala = carouselData;
         else if (row.id === 'graduationGala') db.carouselGraduationGala = carouselData;
         else if (row.id === 'default' || row.id === 'carousel') {
-          if (carouselData.images.length > 0 && !carouselData.images.includes('/images/matem_school_promo.jpg')) {
-            carouselData.images.unshift('/images/matem_school_promo.jpg');
-          }
           if (carouselData.images.length > 0) db.carousel = carouselData;
         }
       });
