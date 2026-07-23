@@ -177,8 +177,8 @@ export function getDatabase(): SchoolDatabase {
   const defaultCarousel: CarouselSettings = {
     images: [
       '/images/matem_school_promo.jpg',
-      '/images/matem_pupils_uniform.jpg',
-      'https://picsum.photos/seed/playground/1920/1080'
+      '/images/matem_college_promo.jpg',
+      '/images/college_students.jpg'
     ],
     intervalSeconds: 5
   };

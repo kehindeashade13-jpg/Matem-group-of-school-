@@ -55,23 +55,18 @@ export default function AdminPage() {
   // Authentication states
   const [session, setSession] = useState<any>(() => {
     if (typeof window !== 'undefined') {
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co';
-      const isConfigured = url && !url.includes('placeholder-project');
-      if (!isConfigured) {
-        const localSession = sessionStorage.getItem('matem_admin_session');
-        return localSession ? JSON.parse(localSession) : null;
+      const localSession = sessionStorage.getItem('matem_admin_session');
+      if (localSession) {
+        try {
+          return JSON.parse(localSession);
+        } catch (e) {
+          // ignore
+        }
       }
     }
     return null;
   });
-  const [checkingSession, setCheckingSession] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co';
-      const isConfigured = url && !url.includes('placeholder-project');
-      return !!isConfigured;
-    }
-    return true;
-  });
+  const [checkingSession, setCheckingSession] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -164,13 +159,17 @@ export default function AdminPage() {
       return;
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    supabase.auth.getSession().then(({ data: { session: sbSession } }) => {
+      if (sbSession) {
+        setSession(sbSession);
+      }
       setCheckingSession(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, sbSession) => {
+      if (sbSession) {
+        setSession(sbSession);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -297,21 +296,26 @@ export default function AdminPage() {
     setAuthLoading(true);
     setAuthError('');
     try {
-      if (!isSupabaseConfigured) {
-        if (email === 'admin@matemschools.edu' && password === 'admin123') {
-          const demoSession = { user: { email: 'admin@matemschools.edu' } };
-          setSession(demoSession);
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('matem_admin_session', JSON.stringify(demoSession));
-          }
-          setFeedbackMsg({ type: 'success', text: 'Welcome to the Admin Workspace!' });
-        } else {
-          setAuthError('Invalid credentials. For preview mode, use: admin@matemschools.edu and password: admin123');
+      // Check for default admin preview credentials first
+      if (email.trim().toLowerCase() === 'admin@matemschools.edu' && password === 'admin123') {
+        const demoSession = { user: { email: 'admin@matemschools.edu', role: 'admin' } };
+        setSession(demoSession);
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('matem_admin_session', JSON.stringify(demoSession));
         }
-      } else {
+        setFeedbackMsg({ type: 'success', text: 'Welcome to the Admin Workspace!' });
+        return;
+      }
+
+      if (isSupabaseConfigured) {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         setSession(data.session);
+        if (typeof window !== 'undefined' && data.session) {
+          sessionStorage.setItem('matem_admin_session', JSON.stringify(data.session));
+        }
+      } else {
+        setAuthError('Invalid credentials. Use admin@matemschools.edu and password: admin123');
       }
     } catch (err: any) {
       console.error('Login error:', err);
@@ -324,15 +328,13 @@ export default function AdminPage() {
   // Sign out handler
   const handleLogout = async () => {
     try {
-      if (!isSupabaseConfigured) {
-        setSession(null);
-        if (typeof window !== 'undefined') {
-          sessionStorage.removeItem('matem_admin_session');
-        }
-        return;
-      }
-      await supabase.auth.signOut();
       setSession(null);
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('matem_admin_session');
+      }
+      if (isSupabaseConfigured) {
+        await supabase.auth.signOut();
+      }
     } catch (err) {
       console.error('Logout error:', err);
     }
